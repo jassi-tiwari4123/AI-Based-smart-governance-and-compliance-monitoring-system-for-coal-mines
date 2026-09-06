@@ -1,0 +1,564 @@
+# ⚡ Hackathon Battle Plan (2–3 Days)
+## AI-Based Smart Governance & Compliance Monitoring System for Coal Mines
+
+---
+
+## 🎯 What You're Building
+
+A working prototype that demonstrates the **7-step workflow** from the reference diagram — Field Data Collection → AI Analysis → Action Management → Dashboards & Reporting — with an **AI Agent Core** that observes, reasons, decides, and acts.
+
+---
+
+## 🗓️ Day-by-Day Schedule
+
+### DAY 1 — Foundation + Data Pipeline + Core UI (12–14 hrs)
+
+| Time Block | Task | Deliverable |
+|-----------|------|-------------|
+| **Hr 1–2** | Project setup, DB schema, seed data | Running app skeleton with database |
+| **Hr 3–5** | Step 1 & 2: Field Data Collection + Ingestion form | Mobile-responsive inspection form with photo upload, GPS, timestamp |
+| **Hr 6–8** | Step 7: Build all 3 dashboards (Mine / Corporate / Regulator) | Working dashboard pages with chart placeholders |
+| **Hr 9–11** | Seed realistic mock data + wire dashboards to data | Charts, tables, compliance scores showing real numbers |
+| **Hr 12–14** | Step 5: Workflow engine — alerts, assignments, escalation | Notification system + status tracking |
+
+### DAY 2 — AI Agent + Smart Features (12–14 hrs)
+
+| Time Block | Task | Deliverable |
+|-----------|------|-------------|
+| **Hr 1–3** | Step 3: AI Analysis — risk scoring + violation detection | Working AI analysis on compliance data |
+| **Hr 4–6** | Step 4: AI Agent Investigation — reasoning + recommendations | AI agent that explains WHY something is risky and WHAT to do |
+| **Hr 7–9** | Step 6: Corrective Action + Verification flow | Full CAPA lifecycle with evidence upload |
+| **Hr 10–12** | Knowledge Base: regulations, historical violations, SOPs | Searchable knowledge store powering the AI agent |
+| **Hr 13–14** | GIS map integration (Leaflet) | Mine locations on map with compliance color coding |
+
+### DAY 3 — Polish + Demo Prep (8–10 hrs)
+
+| Time Block | Task | Deliverable |
+|-----------|------|-------------|
+| **Hr 1–3** | OCR demo (document scan → auto-fill compliance form) | Working OCR pipeline |
+| **Hr 4–5** | Contractor portal (receive tasks, submit evidence) | 4th user role working |
+| **Hr 6–7** | UI polish — animations, colors, responsive design | Premium-looking UI |
+| **Hr 8–9** | Demo data walkthrough — create a compelling story | End-to-end scenario ready |
+| **Hr 10** | Record demo / practice pitch | Presentation ready |
+
+---
+
+## 🏗️ Recommended Tech Stack (Hackathon-Optimized)
+
+| Layer | Tech | Why |
+|-------|------|-----|
+| **Frontend** | Next.js + React | Fast setup, SSR, file-based routing |
+| **Styling** | Tailwind CSS | Rapid UI development |
+| **Charts** | Recharts or Chart.js | Quick dashboards |
+| **Maps** | Leaflet + OpenStreetMap | Free, no API key needed |
+| **Backend** | Next.js API Routes | No separate server needed |
+| **Database** | SQLite (via Prisma) or Supabase | Zero-config DB |
+| **AI/LLM** | OpenAI GPT-4 / Gemini API | AI Agent reasoning, NLP, risk analysis |
+| **OCR** | Tesseract.js (browser) | Client-side OCR, no server needed |
+| **Auth** | NextAuth.js | Role-based login in minutes |
+| **File Upload** | Multer or UploadThing | Photo/document evidence |
+| **Geo** | Browser Geolocation API | GPS coordinates from device |
+
+---
+
+## 🔄 The 7-Step Workflow — Implementation Details
+
+### Step 1: Field Data Collection
+
+**What to build:** A mobile-responsive form that field inspectors fill out.
+
+**Form fields:**
+- Inspection type (dropdown: Safety / Environment / Production / Labour)
+- Mine name (dropdown)
+- Zone/area within mine
+- Observation text (textarea)
+- Severity (Critical / Major / Minor)
+- Photos (camera capture / file upload)
+- Auto-captured: GPS coordinates, timestamp, inspector name
+
+**AI Prompt for auto-classification:**
+```
+You are a mining compliance AI assistant. Given this field observation:
+
+Observation: "{observation_text}"
+Mine: "{mine_name}"
+Zone: "{zone}"
+
+Classify this observation:
+1. Category: [Safety / Environment / Production / Labour]
+2. Applicable Regulation: [identify specific DGMS/environmental regulation]
+3. Severity: [Critical / Major / Minor]
+4. Immediate Risk: [Yes / No]
+5. Recommended Priority: [Immediate / Within 24hrs / Within 7 days / Routine]
+
+Respond in JSON format.
+```
+
+---
+
+### Step 2: Data Ingestion & Processing
+
+**What to build:** Backend processing pipeline.
+
+**Operations:**
+- Validate and store form data in DB
+- Process uploaded photos (store in blob/S3)
+- If document uploaded → run **OCR** to extract text
+- Extract metadata (date, location, mine, inspector)
+- Normalize and tag the data
+
+**AI Prompt for OCR text extraction:**
+```
+You are a mining compliance document parser. The following text was extracted via OCR from a compliance document:
+
+"{ocr_extracted_text}"
+
+Extract the following fields in JSON format:
+- document_type (inspection report / compliance certificate / violation notice / permit)
+- date_issued
+- mine_name
+- regulation_reference
+- key_findings (array of strings)
+- compliance_status (compliant / non-compliant / pending)
+- responsible_person
+- deadline (if any)
+
+If a field cannot be determined, set it to null.
+```
+
+---
+
+### Step 3: AI Analysis & Risk Detection
+
+**What to build:** AI-powered analysis that runs on ingested data.
+
+**Operations:**
+- Scan new data against compliance rules in knowledge base
+- Detect violations (rule-based + AI)
+- Calculate risk scores per mine/zone
+- Identify recurring patterns
+- Generate predictive alerts
+
+**AI Prompt for risk analysis:**
+```
+You are an AI compliance analyst for coal mining operations. Analyze the following compliance data:
+
+Mine: {mine_name}
+Recent inspections (last 30 days): {inspection_summary_json}
+Open violations: {violations_json}
+Historical violation rate: {stats}
+
+Perform the following analysis:
+1. **Risk Score** (0-100): Calculate overall compliance risk for this mine
+2. **Critical Violations**: List any violations that need immediate attention
+3. **Recurring Patterns**: Identify any repeated compliance failures
+4. **Anomalies**: Flag anything unusual compared to historical patterns
+5. **Predictive Alert**: Are there signs of an upcoming compliance failure?
+6. **Root Cause Hypothesis**: What systemic issues might be causing these violations?
+
+Respond in JSON with these 6 keys plus a brief "executive_summary" field.
+```
+
+---
+
+### Step 4: AI Agent Investigation & Decision Support
+
+**What to build:** The AI Agent that reasons about violations and recommends actions.
+
+This is the **CORE differentiator** — an agent that acts like a compliance expert.
+
+**AI Agent System Prompt:**
+```
+You are an AI Compliance Agent for Coal India's mining operations. You have access to:
+
+KNOWLEDGE BASE:
+- Compliance Rules & Regulations (DGMS, CPCB, Labour Laws)
+- Historical Violations & Cases from all mines
+- Mine & Contractor Profiles with performance history  
+- Best Practices & Standard Operating Procedures
+
+YOUR REASONING PROCESS (follow this exactly):
+1. OBSERVE: Analyze the new violation/observation data provided
+2. RETRIEVE: Identify which regulations apply and find similar past cases
+3. REASON: Assess severity, considering mine context, contractor history, and patterns
+4. DECIDE: Recommend specific corrective actions with reasoning
+5. ACT: Generate assignments, deadlines, and escalation triggers
+6. VERIFY: Define what "resolved" looks like and verification criteria
+
+For the following violation/observation:
+{violation_data_json}
+
+Mine Context:
+{mine_profile_json}
+
+Contractor (if applicable):
+{contractor_profile_json}
+
+Provide your analysis following the 6-step reasoning process above.
+Output as structured JSON with keys: observe, retrieve, reason, decide, act, verify.
+Each key should contain a human-readable explanation.
+Also include:
+- assigned_to: who should handle this
+- deadline: recommended deadline
+- escalation_trigger: condition that triggers escalation
+- priority: Critical / High / Medium / Low
+```
+
+---
+
+### Step 5: Workflow & Action Management
+
+**What to build:** Task management + escalation engine.
+
+**Operations:**
+- Auto-create tasks from AI Agent recommendations
+- Assign to responsible officer/contractor
+- Set deadlines with countdown
+- Escalation matrix (auto-escalate if overdue):
+  - **0 days overdue** → Reminder to assignee
+  - **2 days overdue** → Notify supervisor
+  - **5 days overdue** → Escalate to mine manager
+  - **7+ days overdue** → Alert corporate + regulator
+- Track status: Open → In Progress → Submitted → Verified → Closed
+
+---
+
+### Step 6: Corrective Action & Verification
+
+**What to build:** Evidence submission + AI-assisted verification.
+
+**Operations:**
+- Officer/contractor uploads evidence (photos, documents)
+- Adds description of action taken
+- AI verifies if action addresses the violation
+
+**AI Prompt for verification:**
+```
+You are verifying a corrective action for a mining compliance violation.
+
+Original Violation:
+- Type: {violation_type}
+- Description: {violation_description}
+- Severity: {severity}
+- Required Action: {required_action}
+
+Submitted Corrective Action:
+- Action Taken: {action_description}
+- Evidence Provided: {evidence_description}
+- Submitted By: {submitted_by}
+- Date: {submission_date}
+
+Evaluate:
+1. Does the action adequately address the violation? (Yes / Partially / No)
+2. Is the evidence sufficient? (Yes / No — explain what's missing)
+3. Compliance Status: (Resolved / Needs Rework / Escalate)
+4. Verification Notes: Brief explanation of your assessment
+5. Follow-up Required: (Yes / No — if yes, specify what)
+
+Respond in JSON format.
+```
+
+---
+
+### Step 7: Audit, Reporting & Compliance
+
+**What to build:** Auto-generated reports + immutable audit log.
+
+**Operations:**
+- Log every action with timestamp, user, and details (append-only audit log)
+- Generate compliance report per mine (PDF-ready HTML)
+- Mine-wise compliance score card
+- Trend charts (violations over time, resolution rates)
+
+**AI Prompt for report generation:**
+```
+Generate a statutory compliance report for the following mine:
+
+Mine: {mine_name}
+Period: {start_date} to {end_date}
+Compliance Data: {compliance_summary_json}
+Violations: {violations_json}
+Corrective Actions: {capa_json}
+Inspection Results: {inspections_json}
+
+Create a professional compliance report with these sections:
+1. Executive Summary (2-3 sentences)
+2. Compliance Score: X/100
+3. Regulation-wise Status (Safety / Environment / Production / Labour)
+4. Key Violations and Resolution Status
+5. Risk Assessment for Next Period
+6. Recommendations
+
+Format as structured JSON that can be rendered into a PDF.
+```
+
+---
+
+## 📊 Dashboard Specifications (Quick Build)
+
+### Mine Official Dashboard
+- 🟢🟡🔴 Compliance status donut chart
+- Upcoming deadlines list (next 7 days)
+- Active violations table (sortable by severity)
+- Recent inspections feed
+- Quick action buttons
+
+### Corporate Dashboard  
+- Multi-mine bar chart (compliance scores ranked)
+- Trend line chart (last 6 months)
+- AI risk alerts panel
+- Escalation summary cards
+- Mine map with color-coded pins
+
+### Regulatory Dashboard
+- Compliance overview across all mines
+- Violation history table with filters
+- Audit trail log (read-only, tamper-proof)
+- Report download section
+- Submission tracker (on-time vs overdue)
+
+---
+
+## 📂 Suggested File Structure
+
+```
+coal-mine-compliance/
+├── app/                          # Next.js App Router
+│   ├── layout.js                 # Root layout
+│   ├── page.js                   # Landing / Login
+│   ├── dashboard/
+│   │   ├── mine/page.js          # Mine Official Dashboard
+│   │   ├── corporate/page.js     # Corporate Dashboard
+│   │   └── regulator/page.js     # Regulatory Dashboard
+│   ├── inspection/
+│   │   ├── new/page.js           # New Inspection Form
+│   │   └── [id]/page.js          # Inspection Details
+│   ├── violations/page.js        # Violation List + Details
+│   ├── actions/page.js           # CAPA Tracker
+│   ├── reports/page.js           # Report Generation
+│   ├── map/page.js               # GIS Map View
+│   └── api/
+│       ├── ai/
+│       │   ├── analyze/route.js  # Step 3: AI Analysis
+│       │   ├── agent/route.js    # Step 4: AI Agent
+│       │   ├── verify/route.js   # Step 6: AI Verification
+│       │   └── report/route.js   # Step 7: Report Gen
+│       ├── inspections/route.js
+│       ├── violations/route.js
+│       ├── actions/route.js
+│       └── auth/route.js
+├── components/
+│   ├── charts/                   # Reusable chart components
+│   ├── forms/                    # Inspection, violation forms
+│   ├── dashboard/                # Dashboard widgets
+│   └── map/                      # GIS map component
+├── lib/
+│   ├── db.js                     # Database connection
+│   ├── ai-agent.js               # AI Agent orchestration
+│   ├── prompts.js                # All AI prompts
+│   ├── knowledge-base.js         # Regulations, SOPs data
+│   └── escalation.js             # Escalation logic
+├── prisma/
+│   └── schema.prisma             # Database schema
+├── public/
+│   └── seed-data/                # Mock mine/compliance data
+└── package.json
+```
+
+---
+
+## 🎤 Demo Script (5-Minute Pitch)
+
+1. **"A field inspector at Mine X discovers a safety hazard"** → Show mobile form with photo + GPS
+2. **"The system automatically detects a violation"** → Show AI classification
+3. **"Our AI Agent investigates and recommends action"** → Show the 6-step reasoning
+4. **"Task is auto-assigned with escalation"** → Show workflow engine
+5. **"Corrective action is submitted and AI-verified"** → Show CAPA flow
+6. **"All stakeholders see real-time status"** → Switch between 3 dashboards
+7. **"Everything is auditable and tamper-proof"** → Show audit trail
+8. **"AI predicts which mines need attention next"** → Show risk heatmap
+
+> [!IMPORTANT]
+> The demo story matters more than feature count. Build one end-to-end flow perfectly rather than many half-built features.
+
+---
+
+## 📖 About the Project — What It Is & How It Works
+
+### What Is This Project?
+
+**MineGuard AI** (or your chosen name) is an **AI-Based Smart Governance and Compliance Monitoring System for Coal Mines**. It is a unified digital platform that replaces manual, paper-based compliance tracking in coal mining operations with an intelligent, automated, and transparent system. It ensures that mines adhere to statutory regulations across **Safety, Environment, Production, and Labour** — in real-time.
+
+### What Does It Do?
+
+- **Digitizes field inspections** — Inspectors report observations via a mobile app with photos, GPS location, and timestamps instead of paper forms.
+- **Auto-detects compliance violations** — AI scans every observation against statutory regulations (DGMS, CPCB, Labour Laws) and flags violations instantly.
+- **Predicts risks before they happen** — ML models analyze historical data to score mine risk levels, detect anomalies, and identify recurring failure patterns.
+- **Investigates like a compliance expert** — An AI Agent follows a structured reasoning process (Observe → Retrieve → Reason → Decide → Act → Verify) to recommend corrective actions with full justification.
+- **Automates workflow & escalation** — Tasks are auto-assigned, deadlines tracked, and unresolved violations escalate automatically (Inspector → Supervisor → Mine Manager → Corporate → Regulator).
+- **Verifies corrective actions with AI** — When an officer submits evidence of corrective action, AI evaluates whether the violation is truly resolved or needs rework.
+- **Provides role-based dashboards** — Mine Officials see daily operations, Corporate Management sees cross-mine analytics, Regulatory Authorities get audit-ready reports, and Contractors track their assigned tasks.
+- **Maintains an immutable audit trail** — Every action is logged with who, what, when, and where — ensuring tamper-proof accountability for regulators.
+- **Digitizes legacy documents** — OCR scans old paper records and auto-populates compliance data.
+- **Scales across mines** — Multi-tenant architecture supports deployment across hundreds of mines and subsidiaries under Coal India.
+
+### How Does It Work? (End-to-End Flow)
+
+1. **Field Inspector** opens the mobile app at a mine site, fills an inspection form — attaches photos, GPS auto-tags the location, and submits.
+2. **Data Pipeline** ingests the report, runs OCR on any uploaded documents, validates data, and stores it in the centralized database.
+3. **AI Analysis Engine** scans the data against the compliance knowledge base, calculates a risk score, detects violations, and flags anomalies.
+4. **AI Agent** investigates the flagged violation — retrieves applicable regulations, checks contractor history, considers mine context, and generates a recommended corrective action with reasoning.
+5. **Workflow Engine** auto-creates a task, assigns it to the responsible officer/contractor, sets a deadline, and arms the escalation matrix.
+6. **Officer/Contractor** takes corrective action, uploads evidence (photos, documents). AI verifies whether the action is sufficient — marks as resolved, or requests rework.
+7. **Dashboards & Reports** update in real-time — Mine Officials see their compliance status, Corporate sees cross-mine KPIs, Regulators can download audit-ready reports. Everything is logged in an immutable audit trail.
+
+The entire cycle runs **continuously** — the AI Agent learns from outcomes and improves risk predictions over time.
+
+---
+
+## 🧵 Stitch AI Prompt — Copy/Paste to Generate the Project
+
+> Copy the entire prompt below and paste it into any AI coding assistant (ChatGPT, Gemini, Claude, Cursor, etc.) to scaffold the full project.
+
+```
+You are building a full-stack hackathon project called "MineGuard AI" — an AI-Based Smart Governance and Compliance Monitoring System for Coal Mines.
+
+PROJECT OVERVIEW:
+A digital platform that replaces manual paper-based compliance tracking in coal mining operations. It ensures mines adhere to statutory regulations (Safety, Environment, Production, Labour) using AI-powered analysis, automated workflows, and real-time dashboards. The system follows a 7-step workflow: Field Data Collection → Data Ingestion → AI Risk Analysis → AI Agent Investigation → Workflow & Action Management → Corrective Action Verification → Audit & Reporting.
+
+TECH STACK:
+- Frontend: Next.js 14 (App Router) + React + Tailwind CSS
+- Charts: Recharts
+- Maps: Leaflet + React-Leaflet + OpenStreetMap
+- Backend: Next.js API Routes
+- Database: SQLite via Prisma ORM
+- AI: OpenAI GPT-4 API (or Google Gemini API)
+- OCR: Tesseract.js (client-side)
+- Auth: NextAuth.js with credential-based login
+- File uploads: stored locally in /public/uploads
+
+DATABASE SCHEMA (Prisma):
+Create these models:
+1. User — id, name, email, password, role (MINE_OFFICIAL | CORPORATE | REGULATOR | CONTRACTOR | INSPECTOR), mineId (optional)
+2. Mine — id, name, location, latitude, longitude, subsidiaryName, riskScore, complianceScore
+3. Inspection — id, mineId, inspectorId, type (SAFETY | ENVIRONMENT | PRODUCTION | LABOUR), zone, observations, severity (CRITICAL | MAJOR | MINOR), status (PENDING | IN_PROGRESS | COMPLETED | REVIEWED), photos (JSON array of file paths), gpsLat, gpsLng, createdAt
+4. Violation — id, inspectionId, mineId, regulationType, description, severity, status (OPEN | ASSIGNED | IN_PROGRESS | SUBMITTED | VERIFIED | CLOSED), assignedTo, deadline, escalationLevel (0-4), aiAnalysis (JSON), createdAt
+5. CorrectiveAction — id, violationId, submittedBy, actionDescription, evidencePhotos (JSON), verificationStatus (PENDING | APPROVED | REWORK), aiVerificationNotes, submittedAt, verifiedAt
+6. AuditLog — id, userId, action, entityType, entityId, details (JSON), timestamp
+7. Alert — id, userId, violationId, message, type (REMINDER | ESCALATION | RISK_ALERT), isRead, createdAt
+8. ComplianceRule — id, category (SAFETY | ENVIRONMENT | PRODUCTION | LABOUR), ruleCode, title, description, authority (DGMS | CPCB | LABOUR_DEPT)
+
+Seed the database with:
+- 5 mines with realistic Indian coal mine names and locations (Jharia, Singrauli, Korba, Talcher, Raniganj) with lat/lng coordinates
+- 20+ compliance rules across all 4 categories
+- 50+ historical inspections with varied results
+- 15+ violations in various statuses
+- 5 users (one per role)
+- Historical data spanning 6 months for trend charts
+
+PAGES TO BUILD:
+
+1. LOGIN PAGE (/) — Role-based login with demo buttons for each role (Mine Official, Corporate, Regulator, Contractor, Inspector). Dark theme, modern glassmorphism design.
+
+2. INSPECTOR: NEW INSPECTION (/inspection/new) — Mobile-responsive form with:
+   - Mine selector, zone input, inspection type dropdown
+   - Observation textarea
+   - Severity selector (Critical/Major/Minor)
+   - Photo upload with camera capture option
+   - Auto-capture GPS coordinates (use browser Geolocation API)
+   - Auto-capture timestamp
+   - Submit button that sends to API, which then calls AI for auto-classification
+
+3. MINE OFFICIAL DASHBOARD (/dashboard/mine) — Shows:
+   - Compliance score donut chart (compliant/pending/violated/overdue)
+   - Upcoming deadlines list (next 7 days)
+   - Active violations table (sortable by severity) with status badges
+   - Recent inspections feed with timeline
+   - Quick action buttons (New Inspection, Log Violation, View Map)
+   - AI risk alerts panel
+
+4. CORPORATE DASHBOARD (/dashboard/corporate) — Shows:
+   - Multi-mine bar chart ranking compliance scores
+   - 6-month trend line chart of compliance across all mines
+   - AI risk alerts panel highlighting predicted high-risk mines
+   - Escalation summary (overdue violations per mine)
+   - Mine map with color-coded pins (green=safe, yellow=moderate, red=high-risk)
+   - KPI cards: total inspections, open violations, avg resolution time, compliance %
+
+5. REGULATORY DASHBOARD (/dashboard/regulator) — Shows:
+   - All mines compliance overview table
+   - Violation history with filters (by mine, severity, date, regulation type)
+   - Audit trail log (read-only, shows every action with timestamps)
+   - Download buttons for compliance reports (generate on-demand)
+   - Submission tracker (on-time vs overdue statutory submissions)
+
+6. CONTRACTOR PORTAL (/dashboard/contractor) — Shows:
+   - Assigned tasks list with deadlines and countdown timers
+   - Task detail view with violation info
+   - Evidence submission form (upload photos + description of action taken)
+   - Compliance status tracker for their assignments
+
+7. VIOLATIONS PAGE (/violations) — List all violations with AI analysis details. Click a violation to see the AI Agent's 6-step reasoning (Observe, Retrieve, Reason, Decide, Act, Verify).
+
+8. GIS MAP PAGE (/map) — Full-screen Leaflet map showing all mines. Each mine is a pin colored by risk level. Click a pin to see mine compliance score, recent violations, and risk details in a popup.
+
+9. REPORTS PAGE (/reports) — Select a mine and date range. Click "Generate Report" to have AI create a compliance report. Display the report and offer PDF download.
+
+API ROUTES TO BUILD:
+
+1. POST /api/inspections — Create inspection, auto-classify with AI, check for violations
+2. GET /api/inspections — List inspections with filters
+3. GET /api/violations — List violations with filters
+4. POST /api/ai/analyze — Run AI risk analysis on a mine's data
+5. POST /api/ai/agent — Run AI Agent investigation on a specific violation (returns 6-step reasoning)
+6. POST /api/ai/verify — AI verification of submitted corrective action
+7. POST /api/ai/report — AI-generated compliance report
+8. POST /api/actions — Submit corrective action with evidence
+9. GET /api/alerts — Get alerts for current user
+10. GET /api/audit-log — Get audit trail (regulator view)
+11. GET /api/dashboard/mine — Aggregated data for mine dashboard
+12. GET /api/dashboard/corporate — Aggregated data for corporate dashboard
+
+AI INTEGRATION:
+Use OpenAI's chat completions API (or Gemini). Create a lib/prompts.js file with all prompt templates. The AI Agent should follow this reasoning loop:
+- OBSERVE: Read the violation data
+- RETRIEVE: Match against compliance rules in the knowledge base
+- REASON: Analyze severity considering mine history and contractor track record
+- DECIDE: Recommend specific corrective actions
+- ACT: Set assignments, deadlines, and escalation triggers
+- VERIFY: Define what "resolved" looks like
+
+ESCALATION LOGIC:
+Implement an escalation engine that checks violation deadlines:
+- Due today → Reminder to assignee
+- 2 days overdue → Notify supervisor
+- 5 days overdue → Escalate to mine manager  
+- 7+ days overdue → Alert corporate + regulator
+Run this as a check on every relevant API call (or use a cron-like background check).
+
+UI DESIGN REQUIREMENTS:
+- Dark theme with a professional color scheme (dark navy background, teal/green accents for safe, amber for warnings, red for critical)
+- Glassmorphism cards with subtle backdrop blur
+- Smooth animations and transitions
+- Fully responsive (must look great on mobile for the inspector form)
+- Status badges with colors: Green (Compliant/Closed), Yellow (Pending/In Progress), Red (Violated/Critical), Blue (Assigned)
+- Use Google Font "Inter" for typography
+
+IMPORTANT INSTRUCTIONS:
+1. Seed the database with enough realistic data to make dashboards look impressive during demo
+2. Every AI call should have a loading state with a nice animation
+3. The AI Agent reasoning should be displayed step-by-step (like a thinking process) on the violation detail page
+4. The audit log should capture EVERY action (inspection created, violation detected, task assigned, action submitted, etc.)
+5. Make the GIS map interactive — clicking mines should show rich popups
+6. The compliance score should be calculated as: (compliant_items / total_items) × 100
+7. Add micro-animations on cards, charts, and status changes for a polished feel
+
+Generate the complete project with all files. Start with the Prisma schema, then seed data, then API routes, then pages. Make sure everything is connected and working end-to-end.
+```
+
+> [!TIP]
+> **Customization tips before pasting:**
+> - Replace `"MineGuard AI"` with your chosen project name
+> - Replace `OpenAI GPT-4 API` with your AI provider (Gemini, Claude, etc.)
+> - Add/remove features based on what your team can handle in the time remaining
+> - If you're using Supabase instead of SQLite, update the database section accordingly
