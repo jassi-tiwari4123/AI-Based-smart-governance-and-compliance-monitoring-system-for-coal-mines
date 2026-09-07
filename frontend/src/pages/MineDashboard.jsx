@@ -264,9 +264,15 @@ const MineDetail = ({ mineId, onBack, isManager }) => {
                   <td className="px-4 py-2.5"><StatusBadge status={v.status} /></td>
                   <td className="px-4 py-2.5 font-extrabold text-gray-800">{v.riskScore}/100</td>
                   <td className="px-4 py-2.5">
-                    <Link to={`/ai-investigation/${v.violationId}`} className="text-[#F47C20] font-bold hover:underline flex items-center gap-0.5">
-                      <Cpu className="w-3 h-3" />AI
-                    </Link>
+                    {v._source === 'INSPECTION' ? (
+                      <Link to={`/inspections/${v.inspectionId}`} className="text-blue-600 font-bold hover:underline flex items-center gap-0.5">
+                        <ClipboardCheck className="w-3 h-3" />View
+                      </Link>
+                    ) : (
+                      <Link to={`/ai-investigation/${v.violationId}`} className="text-[#F47C20] font-bold hover:underline flex items-center gap-0.5">
+                        <Cpu className="w-3 h-3" />AI
+                      </Link>
+                    )}
                   </td>
                 </tr>
               ))}

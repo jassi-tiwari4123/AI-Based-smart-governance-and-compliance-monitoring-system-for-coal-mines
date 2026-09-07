@@ -52,7 +52,7 @@ async def create_inspection(
             "mineId": doc["mineId"],
             "inspectionId": inspection_id,
             "category": doc["category"],
-            "title": f"{doc['category']} Compliance Non-Conformity ({doc['zone']})",
+            "title": obs[:80] if obs else f"{doc['category']} Non-Conformity ({doc['zone']})",
             "description": obs,
             "severity": doc["severity"],
             "regulation": "Coal Mines Regulations 2017 CMR 104",
@@ -70,12 +70,14 @@ async def create_inspection(
         
         v_res = await db.violations.insert_one(violation_doc)
         violation_doc["_id"] = str(v_res.inserted_id)
-        created_violation = violation_doc
 
-        # Run Risk Engine
+        # Run Risk Engine (updates DB and returns scores)
         risk_result = await RiskEngineService.calculate_risk_score(violation_doc)
         violation_doc["riskScore"] = risk_result["riskScore"]
         violation_doc["riskLevel"] = risk_result["riskLevel"]
+
+        # set created_violation AFTER risk scores are populated
+        created_violation = violation_doc
 
         # Run AI Agent Investigation
         inv_result = await AIAgentService.investigate_violation(violation_doc)

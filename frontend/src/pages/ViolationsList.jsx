@@ -1,59 +1,57 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import API from '../services/api';
-import { AlertTriangle, Cpu, Search, Flame } from 'lucide-react';
+import { AlertTriangle, Cpu, Search, ClipboardCheck } from 'lucide-react';
 
 const ViolationsList = () => {
-  const [violations, setViolations] = useState([]);
-  const [incidents, setIncidents]   = useState([]);
-  const [loading, setLoading]       = useState(true);
-  const [search, setSearch]         = useState('');
-  const [filters, setFilters]       = useState({ severity: '', category: '', status: '', type: '' });
+  const [violations,  setViolations]  = useState([]);
+  const [inspections, setInspections] = useState([]);
+  const [loading, setLoading]         = useState(true);
+  const [search, setSearch]           = useState('');
+  const [filters, setFilters]         = useState({ severity: '', category: '', status: '', type: '' });
 
   useEffect(() => {
     Promise.all([
       API.get('/violations'),
-      API.get('/incidents'),
+      API.get('/inspections'),
     ])
       .then(([vRes, iRes]) => {
-        setViolations(vRes.data || []);
-        setIncidents(iRes.data  || []);
+        setViolations(vRes.data  || []);
+        setInspections(iRes.data || []);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
 
-  // Normalise incidents to the same shape as violations for unified display
-  const incidentRows = incidents.map(i => ({
-    _type:       'INCIDENT',
-    id:          i.incidentId,
-    title:       i.description?.slice(0, 60) || 'Incident',
-    mineId:      i.mineId,
-    category:    i.category,
-    severity:    i.severity,
-    riskScore:   null,
-    status:      i.status,
-    detectedDate: i.reportedAt,
-    reportedBy:  i.reportedBy,
-    _link:       `/incidents/${i.incidentId}`,
-  }));
-
   const violationRows = violations.map(v => ({
-    _type:       'VIOLATION',
-    id:          v.violationId,
-    title:       v.title,
-    mineId:      v.mineId,
-    category:    v.category,
-    severity:    v.severity,
-    riskScore:   v.riskScore,
-    status:      v.status,
+    _type:        'VIOLATION',
+    id:           v.violationId,
+    title:        v.title,
+    mineId:       v.mineId,
+    category:     v.category,
+    severity:     v.severity,
+    riskScore:    v.riskScore,
+    status:       v.status,
     detectedDate: v.detectedDate,
-    reportedBy:  null,
-    _link:       `/violations/${v.violationId}`,
-    _aiLink:     `/ai-investigation/${v.violationId}`,
+    _link:        `/violations/${v.violationId}`,
+    _aiLink:      `/ai-investigation/${v.violationId}`,
   }));
 
-  const allRows = [...violationRows, ...incidentRows].sort(
+  const inspectionRows = inspections.map(i => ({
+    _type:        'INSPECTION',
+    id:           i.inspectionId,
+    title:        `[${i.category}] ${i.observations?.slice(0, 60) || 'Field Inspection'}`,
+    mineId:       i.mineId,
+    category:     i.category,
+    severity:     i.severity,
+    riskScore:    null,
+    status:       i.status,
+    detectedDate: i.inspectionDate || i.createdAt,
+    _link:        `/inspections/${i.inspectionId}`,
+    _aiLink:      null,
+  }));
+
+  const allRows = [...violationRows, ...inspectionRows].sort(
     (a, b) => new Date(b.detectedDate) - new Date(a.detectedDate)
   );
 
@@ -83,10 +81,10 @@ const ViolationsList = () => {
       <div className="flex items-center justify-between border-b border-gray-300 pb-4">
         <div>
           <h1 className="text-xl font-extrabold text-gray-900 flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-amber-500" />Violations & Incidents Log
+            <AlertTriangle className="w-5 h-5 text-amber-500" />Violations Log
           </h1>
           <p className="text-xs text-gray-500 mt-0.5">
-            {violationRows.length} violations · {incidentRows.length} incidents
+            {violationRows.length} violations · {inspectionRows.length} inspections
           </p>
         </div>
       </div>
@@ -105,7 +103,7 @@ const ViolationsList = () => {
           className="text-xs border border-gray-300 rounded px-2 py-1.5 focus:ring-1 focus:ring-amber-400">
           <option value="">All Types</option>
           <option value="VIOLATION">Violations</option>
-          <option value="INCIDENT">Incidents</option>
+          <option value="INSPECTION">Inspections</option>
         </select>
 
         {[
@@ -152,8 +150,8 @@ const ViolationsList = () => {
                         <AlertTriangle className="w-2.5 h-2.5" />Violation
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-orange-100 text-orange-700">
-                        <Flame className="w-2.5 h-2.5" />Incident
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700">
+                        <ClipboardCheck className="w-2.5 h-2.5" />Inspection
                       </span>
                     )}
                   </td>
@@ -162,7 +160,6 @@ const ViolationsList = () => {
 
                   <td className="px-4 py-2.5 font-semibold text-gray-800 max-w-xs">
                     <p className="truncate">{r.title}</p>
-                    {r.reportedBy && <p className="text-[10px] text-gray-400 font-normal">by {r.reportedBy}</p>}
                   </td>
 
                   <td className="px-4 py-2.5 text-gray-600">{r.mineId}</td>

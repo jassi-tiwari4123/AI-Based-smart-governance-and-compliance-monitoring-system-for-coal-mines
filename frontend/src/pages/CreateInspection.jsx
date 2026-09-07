@@ -42,7 +42,7 @@ const CreateInspection = () => {
     API.get('/mines').then(r => {
       const list = r.data || [];
       setMines(list);
-      // If inspector has a mineId, pre-select it; otherwise first in list
+      // Always lock to inspector's assigned mine if available
       const defaultMine = list.find(m => m.mineId === user?.mineId) || list[0];
       if (defaultMine) {
         setShared(s => ({ ...s, mineId: defaultMine.mineId }));
@@ -238,9 +238,9 @@ const CreateInspection = () => {
               New Report
             </button>
             {ins && (
-              <button onClick={() => navigate('/inspections')}
+              <button onClick={() => navigate(`/inspections/${ins.inspection?.inspectionId || ins.inspectionId}`)}
                 className="flex-1 bg-[#F47C20] hover:bg-orange-600 text-slate-950 font-bold text-xs py-2.5 rounded transition">
-                My Inspections
+                View Inspection
               </button>
             )}
             {inc && !ins && (
@@ -306,13 +306,20 @@ const CreateInspection = () => {
           <h3 className="text-xs font-extrabold text-gray-700 uppercase tracking-wider">Location</h3>
           <div>
             <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-1">Mine / Colliery</label>
-            <select
-              value={shared.mineId}
-              onChange={e => setShared(s => ({ ...s, mineId: e.target.value }))}
-              className="w-full text-xs border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-amber-400 focus:border-amber-400"
-            >
-              {mines.map(m => <option key={m.mineId} value={m.mineId}>{m.name}</option>)}
-            </select>
+            {user?.mineId ? (
+              <div className="w-full text-xs border border-gray-200 bg-gray-50 rounded-md px-3 py-2 text-gray-700 font-semibold">
+                {mines.find(m => m.mineId === user.mineId)?.name || user.mineId}
+                <span className="ml-2 text-gray-400 font-normal">({user.mineId})</span>
+              </div>
+            ) : (
+              <select
+                value={shared.mineId}
+                onChange={e => setShared(s => ({ ...s, mineId: e.target.value }))}
+                className="w-full text-xs border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-amber-400 focus:border-amber-400"
+              >
+                {mines.map(m => <option key={m.mineId} value={m.mineId}>{m.name}</option>)}
+              </select>
+            )}
           </div>
           <div>
             <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-1">Zone / Area</label>

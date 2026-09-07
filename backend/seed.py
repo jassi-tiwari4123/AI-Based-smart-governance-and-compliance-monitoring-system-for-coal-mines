@@ -329,18 +329,12 @@ async def seed_database(db):
     zones      = ["Zone A", "Zone B", "Zone C", "Pit #1", "Haulage Corridor"]
     mine_ids   = ["MINE-001", "MINE-002", "MINE-003", "MINE-004", "MINE-005"]
     inspector_map = {
-        "MINE-001": ("USR-0008", "Rakesh Tiwari"),
-        "MINE-002": ("USR-0010", "Meena Gupta"),
-        "MINE-003": ("USR-0012", "Sanjay Mondal"),
-        "MINE-004": ("USR-0014", "Priya Nayak"),
-        "MINE-005": ("USR-0016", "Amit Kumar Singh"),
+        "MINE-001": "USR-0008", "MINE-002": "USR-0010",
+        "MINE-003": "USR-0012", "MINE-004": "USR-0014", "MINE-005": "USR-0016",
     }
     inspector_name_map = {
-        "MINE-001": "Rakesh Tiwari",
-        "MINE-002": "Meena Gupta",
-        "MINE-003": "Sanjay Mondal",
-        "MINE-004": "Priya Nayak",
-        "MINE-005": "Amit Kumar Singh",
+        "MINE-001": "Rakesh Tiwari", "MINE-002": "Meena Gupta",
+        "MINE-003": "Sanjay Mondal", "MINE-004": "Priya Nayak", "MINE-005": "Amit Kumar Singh",
     }
 
     inspections = []
