@@ -19,7 +19,7 @@ const ActionCard = ({ action, onRefresh, user }) => {
   const [submitting, setSubmitting] = useState(false);
   const [verifying, setVerifying] = useState(false);
 
-  const canSubmit = user?.role === 'CONTRACTOR' || user?.role === 'INSPECTOR' || user?.role === 'MINE_MANAGER';
+  const canSubmit = user?.role === 'CONTRACTOR';
   const canVerify = ['MINE_MANAGER', 'CORPORATE_ADMIN', 'REGULATOR', 'SUPER_ADMIN'].includes(user?.role);
 
   const submitEvidence = async () => {
