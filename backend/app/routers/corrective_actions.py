@@ -67,14 +67,9 @@ async def list_corrective_actions(
     query = {}
     
     if current_user.get("role") == "CONTRACTOR":
-        contractor_name = current_user.get("name", "")
-        contractor_uid  = current_user.get("userId", "")
-        contractor_email = current_user.get("email", "")
-        query["$or"] = [
-            {"assignedUserId": contractor_uid},
-            {"assignedTo": contractor_name},
-            {"assignedTo": contractor_email},
-        ]
+        contractor_uid = current_user.get("userId", "")
+        query["assignedUserId"] = contractor_uid
+        query["mineId"] = current_user.get("mineId")
     elif mineId:
         query["mineId"] = mineId
     elif current_user.get("role") in ["MINE_MANAGER", "INSPECTOR"] and current_user.get("mineId"):
