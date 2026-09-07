@@ -20,17 +20,28 @@ const Navbar = () => {
     { role: 'SUPER_ADMIN', label: 'Super Admin', email: 'superadmin@mineguard.gov.in', color: 'bg-red-700' }
   ];
 
-  const handleRoleSwitch = async (email) => {
-    await switchRoleDemo(email);
+  const ROLE_HOME = {
+    INSPECTOR:       '/dashboard/inspector',
+    MINE_MANAGER:    '/dashboard/mine',
+    CORPORATE_ADMIN: '/dashboard',
+    REGULATOR:       '/dashboard/regulator',
+    CONTRACTOR:      '/dashboard/contractor',
+    SUPER_ADMIN:     '/dashboard',
+  };
+
+  const handleRoleSwitch = async (email, role) => {
+    const res = await switchRoleDemo(email);
     setShowRoleMenu(false);
-    navigate('/dashboard');
+    // Navigate to correct dashboard for the switched role
+    const home = ROLE_HOME[role] || '/dashboard';
+    navigate(home);
   };
 
   return (
     <header className="bg-[#252525] text-white border-b border-gray-800 sticky top-0 z-40 px-4 py-2.5 flex items-center justify-between shadow-md">
       {/* Brand Identity */}
       <div className="flex items-center space-x-3">
-        <Link to="/dashboard" className="flex items-center space-x-2.5 group">
+        <Link to={ROLE_HOME[user?.role] || '/dashboard'} className="flex items-center space-x-2.5 group">
           <div className="bg-[#F47C20] p-1.5 rounded-sm text-black font-extrabold text-lg flex items-center justify-center">
             <Shield className="w-5 h-5 text-slate-950" />
           </div>
@@ -40,14 +51,6 @@ const Navbar = () => {
           </div>
         </Link>
 
-        {/* Demo Scenario Shortcut */}
-        <Link
-          to="/inspections/create"
-          className="hidden md:flex items-center space-x-1.5 bg-[#F47C20] hover:bg-orange-600 text-slate-950 px-3 py-1.5 rounded text-xs font-bold transition shadow-sm"
-        >
-          <Smartphone className="w-4 h-4" />
-          <span>Mobile Inspection Flow</span>
-        </Link>
       </div>
 
       {/* Right Navbar Controls */}
@@ -71,7 +74,7 @@ const Navbar = () => {
               {demoAccounts.map((acc) => (
                 <button
                   key={acc.role}
-                  onClick={() => handleRoleSwitch(acc.email)}
+                  onClick={() => handleRoleSwitch(acc.email, acc.role)}
                   className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-800 flex items-center justify-between transition ${
                     user?.role === acc.role ? 'bg-gray-800 text-amber-400 font-bold' : 'text-gray-300'
                   }`}

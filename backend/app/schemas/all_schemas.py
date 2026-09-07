@@ -147,3 +147,29 @@ class DocumentCreate(BaseModel):
     documentType: str
     issueDate: Optional[str] = None
     expiryDate: Optional[str] = None
+
+
+# Worker Schema
+class WorkerCreate(BaseModel):
+    name: str
+    workerId: Optional[str] = None       # e.g. WRK-001, auto-generated if omitted
+    role: str = "General Labour"         # e.g. Driller, Blaster, General Labour
+    shift: str = "DAY"                   # DAY | NIGHT
+    mineId: Optional[str] = None         # auto-filled from contractor's mineId
+    contractorId: Optional[str] = None   # auto-filled from logged-in contractor
+
+class WorkerUpdate(BaseModel):
+    name: Optional[str] = None
+    role: Optional[str] = None
+    shift: Optional[str] = None
+    active: Optional[bool] = None
+
+# Attendance Schema
+class AttendanceRecord(BaseModel):
+    workerId: str
+    status: str  # PRESENT | ABSENT | HALF_DAY | LEAVE
+
+class AttendanceCreate(BaseModel):
+    mineId: str
+    date: str                            # ISO date string e.g. "2026-09-07"
+    records: List[AttendanceRecord]      # one entry per worker

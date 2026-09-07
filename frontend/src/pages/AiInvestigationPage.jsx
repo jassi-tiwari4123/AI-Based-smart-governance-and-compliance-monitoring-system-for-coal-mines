@@ -1,11 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import API from '../services/api';
-import RiskMeter from '../components/RiskMeter';
 import {
-  Cpu, Eye, Database, Brain, CheckCircle2, AlertTriangle, ArrowRight,
-  Shield, FileText, History, UserCheck, ArrowLeft, Send
+  Cpu, Eye, BookOpen, Brain, Lightbulb, Zap, ShieldCheck,
+  ArrowLeft, AlertTriangle, Clock, CheckCircle2, RefreshCw,
+  ChevronRight, MapPin, Calendar, User
 } from 'lucide-react';
+
+const STEPS = [
+  { key: 'observe',  label: 'OBSERVE',   icon: Eye,         color: 'blue',   desc: 'Analyzing the violation data and field context' },
+  { key: 'retrieve', label: 'RETRIEVE',  icon: BookOpen,    color: 'purple', desc: 'Querying regulations & historical cases' },
+  { key: 'reason',   label: 'REASON',    icon: Brain,       color: 'amber',  desc: 'Assessing severity, patterns, and root cause' },
+  { key: 'decide',   label: 'DECIDE',    icon: Lightbulb,   color: 'orange', desc: 'Generating corrective action recommendations' },
+  { key: 'act',      label: 'ACT',       icon: Zap,         color: 'red',    desc: 'Setting assignments, deadlines, escalations' },
+  { key: 'verify',   label: 'VERIFY',    icon: ShieldCheck, color: 'green',  desc: 'Defining resolution criteria and proof' },
+];
+
+const colorMap = {
+  blue:   { bg: 'bg-blue-600',   light: 'bg-blue-50',   border: 'border-blue-200',   text: 'text-blue-700',   badge: 'bg-blue-100 text-blue-800'   },
+  purple: { bg: 'bg-purple-600', light: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-700', badge: 'bg-purple-100 text-purple-800' },
+  amber:  { bg: 'bg-amber-500',  light: 'bg-amber-50',  border: 'border-amber-200',  text: 'text-amber-700',  badge: 'bg-amber-100 text-amber-800'   },
+  orange: { bg: 'bg-orange-600', light: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-700', badge: 'bg-orange-100 text-orange-800' },
+  red:    { bg: 'bg-red-600',    light: 'bg-red-50',    border: 'border-red-200',    text: 'text-red-700',    badge: 'bg-red-100 text-red-800'       },
+  green:  { bg: 'bg-emerald-600',light: 'bg-emerald-50',border: 'border-emerald-200',text: 'text-emerald-700',badge: 'bg-emerald-100 text-emerald-800'},
+};
 
 const AiInvestigationPage = () => {
   const { id } = useParams();
@@ -13,271 +31,334 @@ const AiInvestigationPage = () => {
   const [violation, setViolation] = useState(null);
   const [investigation, setInvestigation] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [showActionModal, setShowActionModal] = useState(false);
-
-  const [actionForm, setActionForm] = useState({
-    assignedTo: 'Vikram Heavy Infra (Contractor)',
-    description: 'Provide certified safety helmets & steel-toed boots for all pit workers in Zone B immediately.',
-    deadline: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-  });
+  const [running, setRunning] = useState(false);
+  const [activeStep, setActiveStep] = useState(-1);
+  const [revealedSteps, setRevealedSteps] = useState([]);
 
   useEffect(() => {
-    fetchInvestigation();
+    fetchViolation();
   }, [id]);
 
-  const fetchInvestigation = async () => {
+  const fetchViolation = async () => {
     try {
-      const vRes = await API.get(`/violations/${id}`);
-      setViolation(vRes.data);
-
-      const invRes = await API.post(`/ai/investigate/${id}`);
-      setInvestigation(invRes.data);
+      const res = await API.get(`/violations/${id}`);
+      setViolation(res.data);
+      if (res.data.investigationSummary) {
+        setInvestigation(res.data.investigationSummary);
+        setRevealedSteps(STEPS.map(s => s.key));
+      }
     } catch (e) {
-      console.error("Error fetching AI investigation", e);
+      console.error(e);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCreateAction = async (e) => {
-    e.preventDefault();
+  const runInvestigation = async () => {
+    setRunning(true);
+    setInvestigation(null);
+    setRevealedSteps([]);
+    setActiveStep(0);
+
     try {
-      await API.post('/corrective-actions', {
-        violationId: violation.violationId,
-        mineId: violation.mineId,
-        assignedTo: actionForm.assignedTo,
-        description: actionForm.description,
-        deadline: new Date(actionForm.deadline).toISOString()
-      });
-      setShowActionModal(false);
-      navigate('/corrective-actions');
-    } catch (err) {
-      console.error("Error creating action", err);
+      // Animate through steps while waiting for API
+      for (let i = 0; i < STEPS.length; i++) {
+        setActiveStep(i);
+        await new Promise(r => setTimeout(r, 700));
+        setRevealedSteps(prev => [...prev, STEPS[i].key]);
+      }
+      const res = await API.post(`/ai/investigate/${id}`);
+      setInvestigation(res.data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setRunning(false);
+      setActiveStep(-1);
     }
   };
 
   if (loading) {
-    return <div className="p-8 text-center text-xs font-bold text-gray-500">Running AI Knowledge Base Retrieval & Reasoning Agent...</div>;
+    return <div className="p-8 text-center text-xs font-bold text-gray-500 animate-pulse">Loading AI Investigation Engine...</div>;
   }
 
-  const reason = investigation?.reason || {};
-  const retrieve = investigation?.retrieve || {};
-  const observe = investigation?.observe || {};
+  const riskColor = violation?.riskLevel === 'CRITICAL' ? 'text-red-600' :
+    violation?.riskLevel === 'HIGH' ? 'text-orange-600' :
+    violation?.riskLevel === 'MEDIUM' ? 'text-amber-600' : 'text-emerald-600';
 
   return (
-    <div className="p-6 space-y-6 max-w-6xl mx-auto font-sans">
-      <Link to={`/violations/${id}`} className="text-xs font-bold text-gray-600 hover:text-gray-900 flex items-center space-x-1">
-        <ArrowLeft className="w-3.5 h-3.5" />
-        <span>Back to Violation Details</span>
-      </Link>
-
+    <div className="p-6 space-y-6 max-w-5xl mx-auto">
       {/* Header */}
-      <div className="bg-[#252525] text-white p-5 rounded-lg shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4 border-b-4 border-[#F47C20]">
+      <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3">
-          <div className="bg-[#F47C20] text-black p-2.5 rounded font-bold">
-            <Cpu className="w-7 h-7" />
-          </div>
+          <button onClick={() => navigate(-1)} className="p-1.5 rounded hover:bg-gray-200 transition">
+            <ArrowLeft className="w-4 h-4 text-gray-600" />
+          </button>
           <div>
-            <div className="flex items-center space-x-2">
-              <span className="bg-red-600 text-white text-[10px] font-extrabold px-2 py-0.5 rounded">EXPLAINABLE AI AGENT</span>
-              <span className="text-xs font-mono font-bold text-amber-400">{violation?.violationId}</span>
-            </div>
-            <h1 className="text-xl font-black text-white tracking-wide mt-0.5">Statutory AI Compliance Investigation</h1>
-            <p className="text-xs text-gray-300">Mine: {violation?.mineId} | Category: {violation?.category}</p>
+            <h1 className="text-lg font-extrabold text-gray-900 flex items-center space-x-2">
+              <Cpu className="w-5 h-5 text-[#F47C20]" />
+              <span>AI Agent Investigation</span>
+            </h1>
+            <p className="text-xs text-gray-500">6-Step Reasoning Engine — Observe → Retrieve → Reason → Decide → Act → Verify</p>
           </div>
         </div>
-
         <button
-          onClick={() => setShowActionModal(true)}
-          className="bg-[#F47C20] hover:bg-orange-600 text-slate-950 font-black text-xs px-4 py-2.5 rounded shadow transition flex items-center space-x-2 shrink-0"
+          onClick={runInvestigation}
+          disabled={running}
+          className="flex items-center space-x-2 bg-[#252525] hover:bg-gray-700 text-white text-xs font-bold px-4 py-2 rounded shadow transition disabled:opacity-50"
         >
-          <Send className="w-4 h-4" />
-          <span>Create Corrective Action</span>
+          {running ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Cpu className="w-4 h-4" />}
+          <span>{running ? 'Investigating...' : 'Re-Run Investigation'}</span>
         </button>
       </div>
 
-      {/* Risk Score Meter */}
-      <RiskMeter
-        score={violation?.riskScore || 82}
-        level={violation?.riskLevel || 'CRITICAL'}
-        factors={reason.risk_factors || []}
-      />
-
-      {/* 6 STAGES OF AI AGENT PIPELINE */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {/* 1. OBSERVE */}
-        <div className="bg-white border border-gray-300 rounded-lg p-4 shadow-sm flex flex-col justify-between">
-          <div>
-            <div className="flex items-center space-x-2 text-blue-700 font-extrabold text-xs uppercase border-b pb-2 mb-3">
-              <Eye className="w-4 h-4" />
-              <span>1. OBSERVE (Field Data)</span>
+      {/* Violation Context Card */}
+      {violation && (
+        <div className="bg-white border border-gray-300 rounded-lg shadow-sm overflow-hidden">
+          <div className="bg-[#252525] text-white px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <AlertTriangle className="w-4 h-4 text-[#F47C20]" />
+              <span className="font-extrabold text-sm">{violation.violationId}</span>
+              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                violation.riskLevel === 'CRITICAL' ? 'bg-red-600' :
+                violation.riskLevel === 'HIGH' ? 'bg-orange-600' :
+                violation.riskLevel === 'MEDIUM' ? 'bg-amber-600' : 'bg-emerald-600'
+              } text-white`}>{violation.riskLevel}</span>
             </div>
-            <div className="space-y-2 text-xs">
-              <span className="font-bold text-gray-900 block">{observe.title || violation?.title}</span>
-              <p className="text-gray-600">{observe.description || violation?.description}</p>
-              <div className="bg-gray-50 p-2 rounded text-[11px] font-mono text-gray-500">
-                GPS: {observe.gpsLocation?.lat || 20.9167}, {observe.gpsLocation?.lng || 85.1500}
-              </div>
+            <span className={`text-2xl font-black ${riskColor}`}>{violation.riskScore}/100</span>
+          </div>
+          <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+            <div>
+              <span className="text-gray-400 font-bold uppercase tracking-wide block">Title</span>
+              <span className="text-gray-900 font-semibold mt-0.5 block">{violation.title}</span>
+            </div>
+            <div>
+              <span className="text-gray-400 font-bold uppercase tracking-wide block flex items-center gap-1"><MapPin className="w-3 h-3"/>Mine</span>
+              <span className="text-gray-900 font-semibold mt-0.5 block">{violation.mineId}</span>
+            </div>
+            <div>
+              <span className="text-gray-400 font-bold uppercase tracking-wide block flex items-center gap-1"><Calendar className="w-3 h-3"/>Detected</span>
+              <span className="text-gray-900 font-semibold mt-0.5 block">{violation.detectedDate?.split('T')[0]}</span>
             </div>
           </div>
-          <span className="text-[10px] font-bold text-gray-400 mt-4 block">Stage 1 Complete ✓</span>
         </div>
+      )}
 
-        {/* 2. RETRIEVE */}
-        <div className="bg-white border border-gray-300 rounded-lg p-4 shadow-sm flex flex-col justify-between">
-          <div>
-            <div className="flex items-center space-x-2 text-purple-700 font-extrabold text-xs uppercase border-b pb-2 mb-3">
-              <Database className="w-4 h-4" />
-              <span>2. RETRIEVE (Knowledge Base)</span>
-            </div>
-            <div className="space-y-2 text-xs">
-              <div className="bg-purple-50 p-2.5 rounded border border-purple-200">
-                <span className="font-bold text-purple-900 block">Applicable Regulation:</span>
-                <span className="text-purple-800 font-semibold">{retrieve.regulations?.[0]?.act} ({retrieve.regulations?.[0]?.rule})</span>
-                <p className="text-purple-700 mt-1 text-[11px]">{retrieve.regulations?.[0]?.mandatoryAction || retrieve.regulations?.[0]?.title}</p>
-              </div>
-              <div className="text-[11px] text-gray-600">
-                <span className="font-bold block">Historical Context:</span>
-                <span>{retrieve.historicalCases?.[0] || "No prior history"}</span>
-              </div>
-            </div>
-          </div>
-          <span className="text-[10px] font-bold text-gray-400 mt-4 block">Stage 2 Complete ✓</span>
-        </div>
-
-        {/* 3. REASON */}
-        <div className="bg-white border border-gray-300 rounded-lg p-4 shadow-sm flex flex-col justify-between">
-          <div>
-            <div className="flex items-center space-x-2 text-amber-700 font-extrabold text-xs uppercase border-b pb-2 mb-3">
-              <Brain className="w-4 h-4" />
-              <span>3. REASON (Synthesis)</span>
-            </div>
-            <div className="space-y-2 text-xs">
-              <div>
-                <span className="font-bold text-gray-800 block">AI Finding:</span>
-                <p className="text-gray-700 font-semibold">{reason.finding}</p>
-              </div>
-              <div>
-                <span className="font-bold text-gray-800 block">Evidence Match:</span>
-                <p className="text-gray-600">{reason.evidence}</p>
-              </div>
-            </div>
-          </div>
-          <span className="text-[10px] font-bold text-amber-600 mt-4 block">Confidence Score: {reason.confidence || 'High (94%)'}</span>
-        </div>
-
-        {/* 4. DECIDE */}
-        <div className="bg-white border border-gray-300 rounded-lg p-4 shadow-sm flex flex-col justify-between">
-          <div>
-            <div className="flex items-center space-x-2 text-red-700 font-extrabold text-xs uppercase border-b pb-2 mb-3">
-              <AlertTriangle className="w-4 h-4" />
-              <span>4. DECIDE (Risk Decision)</span>
-            </div>
-            <div className="space-y-2 text-xs">
-              <div className="bg-red-50 p-2.5 rounded border border-red-200 text-red-900 font-bold">
-                Level: CRITICAL RISK (82 / 100)
-              </div>
-              <p className="text-gray-600">Decision: Automatic escalation to Mine Safety Manager & Corporate Admin required.</p>
-            </div>
-          </div>
-          <span className="text-[10px] font-bold text-gray-400 mt-4 block">Stage 4 Complete ✓</span>
-        </div>
-
-        {/* 5. ACT */}
-        <div className="bg-white border border-gray-300 rounded-lg p-4 shadow-sm flex flex-col justify-between">
-          <div>
-            <div className="flex items-center space-x-2 text-emerald-700 font-extrabold text-xs uppercase border-b pb-2 mb-3">
-              <CheckCircle2 className="w-4 h-4" />
-              <span>5. ACT (Action Target)</span>
-            </div>
-            <div className="space-y-2 text-xs">
-              <span className="font-bold text-gray-800 block">Recommendation:</span>
-              <p className="text-gray-700 font-semibold">{reason.recommendation}</p>
-            </div>
-          </div>
-          <button
-            onClick={() => setShowActionModal(true)}
-            className="mt-3 w-full py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded transition"
-          >
-            Execute Corrective Action
-          </button>
-        </div>
-
-        {/* 6. VERIFY */}
-        <div className="bg-white border border-gray-300 rounded-lg p-4 shadow-sm flex flex-col justify-between">
-          <div>
-            <div className="flex items-center space-x-2 text-gray-800 font-extrabold text-xs uppercase border-b pb-2 mb-3">
-              <Shield className="w-4 h-4 text-blue-600" />
-              <span>6. VERIFY (Re-Inspection)</span>
-            </div>
-            <div className="space-y-2 text-xs text-gray-600">
-              <span className="font-bold text-gray-800 block">Verification Protocol:</span>
-              <p>{investigation?.verify?.verificationMethod || "Photo & GPS Tagged Inspection Re-upload"}</p>
-              <p className="text-gray-500">Approver: {investigation?.verify?.requiredApprover || "Mine Manager"}</p>
-            </div>
-          </div>
-          <span className="text-[10px] font-bold text-gray-400 mt-4 block">Stage 6 Standard Defined ✓</span>
+      {/* Step Progress Bar */}
+      <div className="bg-white border border-gray-300 rounded-lg p-4 shadow-sm">
+        <h3 className="text-xs font-extrabold text-gray-700 uppercase tracking-wide mb-3">Investigation Progress</h3>
+        <div className="flex items-center">
+          {STEPS.map((step, idx) => {
+            const Icon = step.icon;
+            const c = colorMap[step.color];
+            const isRevealed = revealedSteps.includes(step.key);
+            const isActive = activeStep === idx;
+            return (
+              <React.Fragment key={step.key}>
+                <div className="flex flex-col items-center">
+                  <div className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
+                    isRevealed ? c.bg + ' text-white shadow-md' :
+                    isActive ? c.bg + ' text-white animate-pulse shadow-lg scale-110' :
+                    'bg-gray-200 text-gray-400'
+                  }`}>
+                    {isActive && !isRevealed ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Icon className="w-4 h-4" />}
+                  </div>
+                  <span className={`text-[9px] font-extrabold mt-1 uppercase tracking-wide ${isRevealed ? c.text : 'text-gray-400'}`}>{step.label}</span>
+                </div>
+                {idx < STEPS.length - 1 && (
+                  <div className={`flex-1 h-0.5 mx-1 transition-all ${isRevealed && revealedSteps.includes(STEPS[idx+1]?.key) ? 'bg-gray-400' : 'bg-gray-200'}`} />
+                )}
+              </React.Fragment>
+            );
+          })}
         </div>
       </div>
 
-      {/* Action Assignment Modal */}
-      {showActionModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-2xl space-y-4">
-            <h3 className="text-sm font-extrabold uppercase text-gray-900 border-b pb-2">
-              Assign Corrective Action (VIO-2026-0001)
-            </h3>
-            <form onSubmit={handleCreateAction} className="space-y-3 text-xs">
-              <div>
-                <label className="block font-bold text-gray-700 mb-1">Assign Responsible Officer / Contractor</label>
-                <input
-                  type="text"
-                  required
-                  value={actionForm.assignedTo}
-                  onChange={(e) => setActionForm({ ...actionForm, assignedTo: e.target.value })}
-                  className="w-full p-2 border rounded font-medium"
-                />
-              </div>
+      {/* Investigation Steps */}
+      {STEPS.map((step, idx) => {
+        const Icon = step.icon;
+        const c = colorMap[step.color];
+        const isRevealed = revealedSteps.includes(step.key);
+        const data = investigation?.[step.key];
 
+        return (
+          <div key={step.key} className={`rounded-lg border shadow-sm overflow-hidden transition-all duration-500 ${
+            isRevealed ? 'opacity-100 translate-y-0' : 'opacity-30'
+          } ${c.border} ${c.light}`}>
+            <div className={`px-4 py-3 flex items-center space-x-3 ${c.bg}`}>
+              <div className="bg-white/20 p-1.5 rounded">
+                <Icon className="w-4 h-4 text-white" />
+              </div>
               <div>
-                <label className="block font-bold text-gray-700 mb-1">Corrective Action Instructions</label>
-                <textarea
-                  rows="3"
-                  required
-                  value={actionForm.description}
-                  onChange={(e) => setActionForm({ ...actionForm, description: e.target.value })}
-                  className="w-full p-2 border rounded font-medium"
-                ></textarea>
+                <span className="text-white font-extrabold text-sm">Step {idx + 1}: {step.label}</span>
+                <p className="text-white/80 text-[11px]">{step.desc}</p>
               </div>
+              {isRevealed && <CheckCircle2 className="w-5 h-5 text-white ml-auto" />}
+            </div>
 
-              <div>
-                <label className="block font-bold text-gray-700 mb-1">Compliance Deadline</label>
-                <input
-                  type="date"
-                  required
-                  value={actionForm.deadline}
-                  onChange={(e) => setActionForm({ ...actionForm, deadline: e.target.value })}
-                  className="w-full p-2 border rounded font-medium"
-                />
-              </div>
-
-              <div className="flex items-center justify-end space-x-2 pt-3 border-t">
-                <button
-                  type="button"
-                  onClick={() => setShowActionModal(false)}
-                  className="px-3 py-1.5 text-gray-600 hover:bg-gray-100 font-bold rounded"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-1.5 bg-[#F47C20] text-slate-950 font-extrabold rounded hover:bg-orange-600"
-                >
-                  Assign Action & Notify
-                </button>
-              </div>
-            </form>
+            <div className="p-4">
+              {!isRevealed && (
+                <p className="text-xs text-gray-400 font-medium italic">Waiting for investigation to run...</p>
+              )}
+              {isRevealed && !data && (
+                <p className="text-xs text-gray-400 font-medium">No data captured for this step.</p>
+              )}
+              {isRevealed && data && (
+                <div className="space-y-3 text-xs">
+                  {step.key === 'observe' && (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {Object.entries(data).map(([k, v]) => v && (
+                        <div key={k} className="bg-white rounded border border-gray-200 p-2">
+                          <span className="text-gray-400 font-bold uppercase text-[10px] block">{k}</span>
+                          <span className="text-gray-900 font-semibold mt-0.5 block truncate">{String(v)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {step.key === 'retrieve' && (
+                    <div className="space-y-3">
+                      <div>
+                        <h4 className="font-extrabold text-gray-700 uppercase tracking-wide text-[11px] mb-2">Applicable Regulations</h4>
+                        <div className="space-y-2">
+                          {(data.regulations || []).map((r, i) => (
+                            <div key={i} className="bg-white border border-gray-200 rounded p-2.5">
+                              <span className={`${c.badge} text-[10px] font-bold px-1.5 py-0.5 rounded`}>{r.rule || r.act}</span>
+                              <p className="text-gray-800 font-semibold mt-1">{r.title}</p>
+                              {r.mandatoryAction && <p className="text-gray-500 mt-0.5">{r.mandatoryAction}</p>}
+                            </div>
+                          ))}
+                          {(!data.regulations || data.regulations.length === 0) && <p className="text-gray-400">No regulations matched.</p>}
+                        </div>
+                      </div>
+                      {data.historicalCases && data.historicalCases.length > 0 && (
+                        <div>
+                          <h4 className="font-extrabold text-gray-700 uppercase tracking-wide text-[11px] mb-2">Historical Cases</h4>
+                          {data.historicalCases.map((h, i) => (
+                            <p key={i} className="text-gray-600 py-1 border-b border-gray-100 last:border-0">{h}</p>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {step.key === 'reason' && (
+                    <div className="space-y-3">
+                      <div className={`${c.light} border ${c.border} rounded p-3`}>
+                        <p className="font-extrabold text-gray-800 text-sm">{data.finding}</p>
+                        <p className="text-gray-600 mt-1">{data.evidence}</p>
+                      </div>
+                      {data.risk_factors && (
+                        <div>
+                          <h4 className="font-extrabold text-gray-700 uppercase tracking-wide text-[11px] mb-2">Risk Factors Identified</h4>
+                          <div className="space-y-1">
+                            {data.risk_factors.map((f, i) => (
+                              <div key={i} className="flex items-start space-x-2">
+                                <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+                                <span className="text-gray-700">{f}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {data.historical_context && (
+                        <div className="bg-white border border-gray-200 rounded p-2.5">
+                          <span className="text-gray-400 font-bold uppercase text-[10px]">Historical Context</span>
+                          <p className="text-gray-700 mt-0.5">{data.historical_context}</p>
+                        </div>
+                      )}
+                      {data.confidence && (
+                        <div className="flex items-center space-x-2">
+                          <span className="text-gray-400 font-bold uppercase text-[10px]">AI Confidence:</span>
+                          <span className={`${c.badge} font-extrabold px-2 py-0.5 rounded`}>{data.confidence}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {step.key === 'decide' && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="bg-white border border-gray-200 rounded p-3">
+                        <span className="text-gray-400 font-bold uppercase text-[10px] block">Risk Category</span>
+                        <span className={`font-extrabold text-base ${riskColor}`}>{data.riskCategory}</span>
+                      </div>
+                      <div className="bg-white border border-gray-200 rounded p-3">
+                        <span className="text-gray-400 font-bold uppercase text-[10px] block">Action Required</span>
+                        <span className="font-extrabold text-emerald-700 text-base">{data.actionRequired ? 'YES — IMMEDIATE' : 'No'}</span>
+                      </div>
+                      <div className="bg-white border border-gray-200 rounded p-3">
+                        <span className="text-gray-400 font-bold uppercase text-[10px] block">Escalation Level</span>
+                        <span className="font-extrabold text-red-700 text-sm">{data.escalationLevel}</span>
+                      </div>
+                    </div>
+                  )}
+                  {step.key === 'act' && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="bg-white border border-gray-200 rounded p-3">
+                        <span className="text-gray-400 font-bold uppercase text-[10px] block">Recommended Action</span>
+                        <span className="text-gray-900 font-semibold">{data.recommendedAction}</span>
+                      </div>
+                      <div className="bg-white border border-gray-200 rounded p-3">
+                        <span className="text-gray-400 font-bold uppercase text-[10px] block flex items-center gap-1"><Clock className="w-3 h-3"/>Deadline</span>
+                        <span className="font-extrabold text-red-700">{data.suggestedDeadlineDays} days</span>
+                      </div>
+                      <div className="bg-white border border-gray-200 rounded p-3">
+                        <span className="text-gray-400 font-bold uppercase text-[10px] block flex items-center gap-1"><User className="w-3 h-3"/>Assign To</span>
+                        <span className="text-gray-900 font-semibold">{data.targetRole}</span>
+                      </div>
+                    </div>
+                  )}
+                  {step.key === 'verify' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="bg-white border border-gray-200 rounded p-3">
+                        <span className="text-gray-400 font-bold uppercase text-[10px] block">Verification Method</span>
+                        <span className="text-gray-900 font-semibold">{data.verificationMethod}</span>
+                      </div>
+                      <div className="bg-white border border-gray-200 rounded p-3">
+                        <span className="text-gray-400 font-bold uppercase text-[10px] block">Required Approver</span>
+                        <span className="text-gray-900 font-semibold">{data.requiredApprover}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
+        );
+      })}
+
+      {/* Action Footer */}
+      {investigation && (
+        <div className="bg-[#252525] rounded-lg p-4 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="text-white text-xs">
+            <span className="font-extrabold text-[#F47C20]">Investigation Complete</span>
+            <span className="text-gray-400 ml-2">Generated at {investigation.generatedAt?.split('T')[0]}</span>
+          </div>
+          <div className="flex items-center space-x-3">
+            <Link
+              to={`/violations/${id}`}
+              className="bg-gray-700 hover:bg-gray-600 text-white text-xs font-bold px-4 py-2 rounded transition"
+            >
+              View Violation
+            </Link>
+            <Link
+              to="/corrective-actions"
+              className="bg-[#F47C20] hover:bg-orange-600 text-slate-950 text-xs font-extrabold px-4 py-2 rounded transition flex items-center space-x-1"
+            >
+              <span>Create Corrective Action</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* Trigger first run if no investigation */}
+      {!investigation && !running && (
+        <div className="text-center py-8">
+          <Cpu className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+          <p className="text-sm font-bold text-gray-500 mb-4">No investigation data yet. Run the AI Agent to analyze this violation.</p>
+          <button
+            onClick={runInvestigation}
+            className="bg-[#F47C20] hover:bg-orange-600 text-slate-950 font-extrabold text-sm px-6 py-3 rounded shadow-lg transition"
+          >
+            🔍 Launch AI Investigation
+          </button>
         </div>
       )}
     </div>

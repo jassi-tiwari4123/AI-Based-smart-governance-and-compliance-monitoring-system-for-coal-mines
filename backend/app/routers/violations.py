@@ -87,7 +87,7 @@ async def get_violation(id: str, current_user: dict = Depends(get_current_user))
 async def update_violation(
     id: str,
     update_data: ViolationUpdate,
-    current_user: dict = Depends(require_roles(["MINE_MANAGER", "SUPER_ADMIN", "CORPORATE_ADMIN", "REGULATOR"]))
+    current_user: dict = Depends(require_roles(["MINE_MANAGER", "SUPER_ADMIN", "CORPORATE_ADMIN"]))
 ):
     db = get_database()
     fields = {k: v for k, v in update_data.dict().items() if v is not None}

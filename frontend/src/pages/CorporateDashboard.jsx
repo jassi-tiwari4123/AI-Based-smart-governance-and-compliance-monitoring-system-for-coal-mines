@@ -54,12 +54,6 @@ const CorporateDashboard = () => {
           <p className="text-xs text-gray-600">Centralized Statutory Monitoring Across All Operational Pit Locations</p>
         </div>
         <div className="flex items-center space-x-2">
-          <Link
-            to="/inspections/create"
-            className="bg-[#F47C20] hover:bg-orange-600 text-slate-950 font-bold text-xs px-3.5 py-2 rounded shadow transition flex items-center space-x-1.5"
-          >
-            <span>+ Mobile Field Inspection</span>
-          </Link>
           <button
             onClick={fetchDashboard}
             className="bg-gray-800 text-white font-bold text-xs px-3 py-2 rounded hover:bg-gray-700 transition"

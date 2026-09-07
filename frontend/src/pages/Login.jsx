@@ -1,34 +1,26 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Lock, Mail, ArrowRight, UserCheck, ShieldAlert } from 'lucide-react';
+import { Shield, Lock, Mail, ArrowRight, ShieldAlert, Eye, EyeOff } from 'lucide-react';
 
 const Login = () => {
-  const [email, setEmail] = useState('inspector@mineguard.gov.in');
-  const [password, setPassword] = useState('password123');
-  const [error, setError] = useState('');
-  const { login, loading } = useAuth();
-  const navigate = useNavigate();
+  const [email, setEmail]       = useState('');
+  const [password, setPassword] = useState('');
+  const [showPwd, setShowPwd]   = useState(false);
+  const [error, setError]       = useState('');
+  const { login, loading }      = useAuth();
+  const navigate                = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     const res = await login(email, password);
     if (res.success) {
-      navigate('/dashboard');
+      navigate('/');
     } else {
-      setError(res.error || 'Invalid credentials');
+      setError(res.error || 'Invalid email or password.');
     }
   };
-
-  const quickDemoAccounts = [
-    { role: 'INSPECTOR', label: 'Inspector (Ananya Sharma)', email: 'inspector@mineguard.gov.in', desc: 'Create inspections & field observations' },
-    { role: 'MINE_MANAGER', label: 'Mine Manager (Subhashish Panda)', email: 'manager@mineguard.gov.in', desc: 'Assign actions & verify compliance' },
-    { role: 'CORPORATE_ADMIN', label: 'Corporate Admin (Rajesh Kumar)', email: 'admin@mineguard.gov.in', desc: 'Enterprise executive overview' },
-    { role: 'REGULATOR', label: 'Coal Regulator (Dr. V. K. Singh)', email: 'regulator@mineguard.gov.in', desc: 'Statutory compliance & audit access' },
-    { role: 'CONTRACTOR', label: 'Contractor (Vikram Heavy Infra)', email: 'contractor@mineguard.gov.in', desc: 'Submit corrective evidence & task status' },
-    { role: 'SUPER_ADMIN', label: 'Super Admin', email: 'superadmin@mineguard.gov.in', desc: 'Full system administration' },
-  ];
 
   return (
     <div className="min-h-screen bg-[#F3F3F1] flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans">
@@ -47,89 +39,81 @@ const Login = () => {
         <h2 className="mt-4 text-center text-xl font-extrabold text-gray-900">
           Sign in to Mine Compliance Platform
         </h2>
-        <p className="text-center text-xs text-gray-600 mt-1">
-          Authorized Coal Mine Governance & Statutory Monitoring
+        <p className="text-center text-xs text-gray-500 mt-1">
+          Authorized Coal Mine Governance &amp; Statutory Monitoring
         </p>
       </div>
 
-      <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-lg">
-        <div className="bg-white py-8 px-6 shadow-md border border-gray-300 rounded-lg sm:px-10">
+      <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white py-8 px-8 shadow-md border border-gray-300 rounded-lg">
           {error && (
-            <div className="mb-4 bg-red-50 border-l-4 border-red-600 p-3 text-xs text-red-700 flex items-center space-x-2">
+            <div className="mb-5 bg-red-50 border-l-4 border-red-600 p-3 text-xs text-red-700 flex items-center gap-2 rounded-r">
               <ShieldAlert className="w-4 h-4 shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
-          <form className="space-y-4" onSubmit={handleSubmit}>
+          <form className="space-y-5" onSubmit={handleSubmit}>
             <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">Official Email Address</label>
-              <div className="mt-1 relative rounded-md shadow-sm">
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                Official Email Address
+              </label>
+              <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
                   <Mail className="w-4 h-4" />
                 </div>
                 <input
                   type="email"
                   required
+                  autoComplete="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-amber-500 focus:border-amber-500 font-medium"
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="your@mineguard.gov.in"
+                  className="block w-full pl-10 pr-3 py-2.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-400 focus:border-amber-400 font-medium"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">Password</label>
-              <div className="mt-1 relative rounded-md shadow-sm">
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                Password
+              </label>
+              <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
                   <Lock className="w-4 h-4" />
                 </div>
                 <input
-                  type="password"
+                  type={showPwd ? 'text' : 'password'}
                   required
+                  autoComplete="current-password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-amber-500 focus:border-amber-500 font-medium"
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  className="block w-full pl-10 pr-10 py-2.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-400 focus:border-amber-400 font-medium"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPwd(v => !v)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                >
+                  {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex justify-center items-center space-x-2 py-2.5 px-4 border border-transparent rounded-md shadow-sm text-xs font-bold text-slate-950 bg-[#F47C20] hover:bg-orange-600 focus:outline-none transition"
+              className="w-full flex justify-center items-center gap-2 py-3 px-4 rounded-md shadow-sm text-xs font-extrabold text-slate-950 bg-[#F47C20] hover:bg-orange-600 disabled:opacity-60 focus:outline-none transition"
             >
               <span>{loading ? 'Authenticating...' : 'Sign In to MineGuard'}</span>
-              <ArrowRight className="w-4 h-4" />
+              {!loading && <ArrowRight className="w-4 h-4" />}
             </button>
           </form>
 
-          {/* Quick Demo Switcher */}
-          <div className="mt-6 border-t border-gray-200 pt-5">
-            <span className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Select Demo Account Role:</span>
-            <div className="grid grid-cols-1 gap-2">
-              {quickDemoAccounts.map((acc) => (
-                <button
-                  key={acc.role}
-                  onClick={() => {
-                    setEmail(acc.email);
-                    setPassword('password123');
-                  }}
-                  className={`text-left p-2.5 rounded border text-xs flex items-center justify-between transition ${
-                    email === acc.email
-                      ? 'border-[#F47C20] bg-orange-50/70 font-bold text-gray-900'
-                      : 'border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-700'
-                  }`}
-                >
-                  <div>
-                    <span className="font-bold block text-gray-900">{acc.label}</span>
-                    <span className="text-[10px] text-gray-500 block">{acc.desc}</span>
-                  </div>
-                  {email === acc.email && <UserCheck className="w-4 h-4 text-[#F47C20]" />}
-                </button>
-              ))}
-            </div>
-          </div>
+          <p className="mt-6 text-center text-[11px] text-gray-400">
+            Contact your Corporate Admin if you do not have an account.
+          </p>
         </div>
       </div>
     </div>

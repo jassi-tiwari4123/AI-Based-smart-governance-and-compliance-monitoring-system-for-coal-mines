@@ -103,3 +103,109 @@ async def delete_mine(
     if res.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Mine not found")
     return {"message": "Mine deleted successfully"}
+
+
+@router.post("/{mine_id}/assign-manager")
+async def assign_manager(
+    mine_id: str,
+    payload: dict,
+    current_user: dict = Depends(require_roles(["SUPER_ADMIN", "CORPORATE_ADMIN"]))
+):
+    """
+    Assign or replace the Mine Manager for a mine.
+    payload: { "userId": "USR-0001" }
+    - Sets the mine's manager field to the user's name
+    - Updates the user's mineId to this mine
+    - Removes mineId from any previously assigned manager
+    """
+    db = get_database()
+
+    mine = await db.mines.find_one({"$or": [{"mineId": mine_id}, {"_id": mine_id}]})
+    if not mine:
+        raise HTTPException(status_code=404, detail="Mine not found")
+
+    user_id = payload.get("userId")
+    if not user_id:
+        raise HTTPException(status_code=400, detail="userId is required")
+
+    new_manager = await db.users.find_one({"userId": user_id})
+    if not new_manager:
+        raise HTTPException(status_code=404, detail="User not found")
+    if new_manager.get("role") != "MINE_MANAGER":
+        raise HTTPException(status_code=400, detail="User must have MINE_MANAGER role")
+
+    # Clear mineId from any existing manager of this mine
+    await db.users.update_many(
+        {"mineId": mine_id, "role": "MINE_MANAGER"},
+        {"$set": {"mineId": None, "updatedAt": datetime.utcnow().isoformat()}}
+    )
+
+    # Assign new manager
+    await db.users.update_one(
+        {"userId": user_id},
+        {"$set": {"mineId": mine_id, "updatedAt": datetime.utcnow().isoformat()}}
+    )
+
+    # Update mine's manager field
+    await db.mines.update_one(
+        {"mineId": mine_id},
+        {"$set": {
+            "manager": new_manager.get("name"),
+            "managerId": user_id,
+            "updatedAt": datetime.utcnow().isoformat()
+        }}
+    )
+
+    await log_audit_event(
+        user_id=current_user.get("userId"),
+        user_email=current_user["email"],
+        role=current_user["role"],
+        action="Mine Manager Assigned",
+        module="MINE",
+        record_id=mine_id,
+        metadata={"newManager": new_manager.get("name"), "userId": user_id}
+    )
+
+    return {"message": f"{new_manager.get('name')} assigned as manager of {mine_id}"}
+
+
+@router.delete("/{mine_id}/manager")
+async def remove_manager(
+    mine_id: str,
+    current_user: dict = Depends(require_roles(["SUPER_ADMIN", "CORPORATE_ADMIN"]))
+):
+    """Remove the current manager from a mine without replacing them."""
+    db = get_database()
+
+    mine = await db.mines.find_one({"mineId": mine_id})
+    if not mine:
+        raise HTTPException(status_code=404, detail="Mine not found")
+
+    # Clear mineId from the current manager user
+    if mine.get("managerId"):
+        await db.users.update_one(
+            {"userId": mine["managerId"]},
+            {"$set": {"mineId": None, "updatedAt": datetime.utcnow().isoformat()}}
+        )
+
+    # Clear manager fields on the mine
+    await db.mines.update_one(
+        {"mineId": mine_id},
+        {"$set": {
+            "manager": "",
+            "managerId": "",
+            "updatedAt": datetime.utcnow().isoformat()
+        }}
+    )
+
+    await log_audit_event(
+        user_id=current_user.get("userId"),
+        user_email=current_user["email"],
+        role=current_user["role"],
+        action="Mine Manager Removed",
+        module="MINE",
+        record_id=mine_id,
+        metadata={"removedManager": mine.get("manager")}
+    )
+
+    return {"message": f"Manager removed from {mine_id}"}

@@ -146,7 +146,7 @@ async def submit_evidence(
 async def verify_corrective_action(
     id: str,
     payload: VerificationAction,
-    current_user: dict = Depends(require_roles(["MINE_MANAGER", "SUPER_ADMIN", "CORPORATE_ADMIN", "REGULATOR"]))
+    current_user: dict = Depends(require_roles(["MINE_MANAGER", "SUPER_ADMIN", "CORPORATE_ADMIN"]))
 ):
     db = get_database()
     act = await db.corrective_actions.find_one({"$or": [{"actionId": id}, {"_id": id}]})

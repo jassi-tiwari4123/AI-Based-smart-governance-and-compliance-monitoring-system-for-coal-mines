@@ -1,83 +1,104 @@
 import React, { useState, useEffect } from 'react';
 import API from '../services/api';
-import { Users, ShieldCheck, AlertTriangle, FileText } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Users, Search } from 'lucide-react';
 
 const ContractorsList = () => {
-  const [dashboard, setDashboard] = useState(null);
+  const [actions, setActions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
-    fetchContractorDashboard();
+    API.get('/corrective-actions')
+      .then(r => setActions(r.data || []))
+      .catch(console.error)
+      .finally(() => setLoading(false));
   }, []);
 
-  const fetchContractorDashboard = async () => {
-    try {
-      const res = await API.get('/dashboard/contractor');
-      setDashboard(res.data);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Group by contractor
+  const contractorMap = {};
+  actions.forEach(a => {
+    const key = a.assignedTo || 'Unassigned';
+    if (!contractorMap[key]) contractorMap[key] = { name: key, tasks: 0, pending: 0, completed: 0, escalated: 0 };
+    contractorMap[key].tasks++;
+    if (['ASSIGNED','IN_PROGRESS'].includes(a.status)) contractorMap[key].pending++;
+    if (['VERIFIED','CLOSED'].includes(a.status)) contractorMap[key].completed++;
+    if (['ESCALATED','ESCALATED_CORPORATE'].includes(a.status)) contractorMap[key].escalated++;
+  });
 
-  if (loading) return <div className="p-8 text-center text-xs font-bold text-gray-500">Loading Contractor Governance...</div>;
+  const contractors = Object.values(contractorMap).filter(c =>
+    !search || c.name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  if (loading) return <div className="p-8 text-center text-xs font-bold text-gray-500 animate-pulse">Loading contractors...</div>;
 
   return (
-    <div className="p-6 space-y-6 font-sans">
+    <div className="p-6 space-y-5">
       <div className="flex items-center justify-between border-b border-gray-300 pb-4">
         <div>
-          <h1 className="text-xl font-extrabold text-gray-900 uppercase">Contractor Management & Assigned Safety Tasks</h1>
-          <p className="text-xs text-gray-600">Track Assigned Corrective Actions, Evidence Submissions & Task Verification</p>
+          <h1 className="text-xl font-extrabold text-gray-900 flex items-center gap-2">
+            <Users className="w-5 h-5 text-[#F47C20]" />Contractor Compliance
+          </h1>
+          <p className="text-xs text-gray-500">{contractors.length} contractors with assigned tasks</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white border border-gray-300 rounded-md p-4 shadow-sm">
-          <span className="text-[10px] font-bold text-gray-500 uppercase block">Total Assigned Tasks</span>
-          <span className="text-2xl font-black text-gray-900">{dashboard?.assignedTasksCount || 0}</span>
-        </div>
-        <div className="bg-white border border-gray-300 rounded-md p-4 shadow-sm">
-          <span className="text-[10px] font-bold text-gray-500 uppercase block">Pending Evidence Upload</span>
-          <span className="text-2xl font-black text-amber-600">{dashboard?.pendingEvidenceCount || 0}</span>
-        </div>
-        <div className="bg-white border border-gray-300 rounded-md p-4 shadow-sm">
-          <span className="text-[10px] font-bold text-gray-500 uppercase block">Submitted for Manager Verification</span>
-          <span className="text-2xl font-black text-blue-600">{dashboard?.submittedVerificationCount || 0}</span>
-        </div>
-        <div className="bg-white border border-gray-300 rounded-md p-4 shadow-sm">
-          <span className="text-[10px] font-bold text-gray-500 uppercase block">Verified & Closed Tasks</span>
-          <span className="text-2xl font-black text-emerald-600">{dashboard?.completedTasksCount || 0}</span>
-        </div>
+      <div className="bg-white border border-gray-200 rounded-lg p-3 flex items-center gap-2 shadow-sm">
+        <Search className="w-4 h-4 text-gray-400 shrink-0" />
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search contractors..."
+          className="flex-1 text-xs border-0 focus:ring-0 outline-none" />
       </div>
 
-      <div className="bg-white border border-gray-300 rounded-md shadow-sm overflow-hidden">
-        <div className="bg-gray-100 px-4 py-3 border-b font-bold text-xs uppercase text-gray-900">
-          Assigned Tasks List
-        </div>
-        <div className="divide-y divide-gray-200 text-xs">
-          {dashboard?.tasks?.map((t) => (
-            <div key={t.actionId} className="p-4 flex items-center justify-between hover:bg-gray-50 transition">
-              <div>
-                <div className="flex items-center space-x-2">
-                  <span className="font-extrabold text-gray-900">{t.actionId}</span>
-                  <span className="text-gray-500 font-mono">({t.violationId})</span>
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                    t.status === 'VERIFIED' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900'
-                  }`}>
-                    {t.status}
-                  </span>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {contractors.map((c, i) => {
+          const compRate = c.tasks > 0 ? Math.round((c.completed / c.tasks) * 100) : 0;
+          return (
+            <div key={i} className="bg-white border border-gray-300 rounded-lg shadow-sm p-4">
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <p className="font-extrabold text-gray-900 text-sm">{c.name}</p>
+                  <p className="text-xs text-gray-500">{c.tasks} total assigned tasks</p>
                 </div>
-                <p className="text-gray-700 font-medium mt-1">{t.description}</p>
-                <span className="text-[10px] text-gray-400 block mt-1">Deadline: {t.deadline?.split('T')[0]}</span>
+                {c.escalated > 0 && (
+                  <span className="bg-red-100 text-red-700 text-[10px] font-extrabold px-2 py-0.5 rounded">
+                    {c.escalated} ESCALATED
+                  </span>
+                )}
               </div>
-              <Link to="/corrective-actions" className="text-amber-600 font-bold hover:underline">
-                Manage Task →
-              </Link>
+              <div className="space-y-2">
+                <div>
+                  <div className="flex justify-between text-[11px] mb-1">
+                    <span className="text-gray-500">Completion Rate</span>
+                    <span className="font-extrabold text-gray-800">{compRate}%</span>
+                  </div>
+                  <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div className={`h-full rounded-full ${compRate >= 75 ? 'bg-emerald-500' : compRate >= 50 ? 'bg-amber-500' : 'bg-red-500'}`}
+                      style={{ width: `${compRate}%` }} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                  <div className="bg-amber-50 rounded p-1.5">
+                    <p className="font-extrabold text-amber-700">{c.pending}</p>
+                    <p className="text-gray-500 text-[10px]">Pending</p>
+                  </div>
+                  <div className="bg-emerald-50 rounded p-1.5">
+                    <p className="font-extrabold text-emerald-700">{c.completed}</p>
+                    <p className="text-gray-500 text-[10px]">Completed</p>
+                  </div>
+                  <div className="bg-red-50 rounded p-1.5">
+                    <p className="font-extrabold text-red-700">{c.escalated}</p>
+                    <p className="text-gray-500 text-[10px]">Escalated</p>
+                  </div>
+                </div>
+              </div>
             </div>
-          ))}
-        </div>
+          );
+        })}
+        {contractors.length === 0 && (
+          <div className="col-span-2 text-center py-10 text-gray-400">
+            <Users className="w-10 h-10 mx-auto mb-2 text-gray-300" />
+            <p>No contractors found</p>
+          </div>
+        )}
       </div>
     </div>
   );
