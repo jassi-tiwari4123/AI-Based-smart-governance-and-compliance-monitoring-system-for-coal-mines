@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import API from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { CheckCircle2, Clock, Upload, AlertTriangle, ChevronRight, Loader2, FileText } from 'lucide-react';
+import { CheckCircle2, Clock, Upload, AlertTriangle, Loader2, FileText, ExternalLink } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const CountdownBadge = ({ deadline }) => {
   if (!deadline) return null;
@@ -21,13 +22,26 @@ const ContractorDashboard = () => {
   const [submitting, setSubmitting] = useState(null);
   const [evidenceNotes, setEvidenceNotes] = useState({});
   const [submitted, setSubmitted] = useState({});
+  const [violations, setViolations] = useState({});
 
   useEffect(() => { fetchData(); }, []);
 
   const fetchData = async () => {
     try {
       const res = await API.get('/dashboard/contractor');
+      const tasks = res.data?.tasks || [];
       setData(res.data);
+
+      // Fetch violation details for each pending task
+      const vioIds = [...new Set(tasks.map(t => t.violationId).filter(Boolean))];
+      const vioMap = {};
+      await Promise.all(vioIds.map(async id => {
+        try {
+          const v = await API.get(`/violations/${id}`);
+          vioMap[id] = v.data;
+        } catch {}
+      }));
+      setViolations(vioMap);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   };
@@ -100,15 +114,43 @@ const ContractorDashboard = () => {
             <div className="bg-amber-50 border-b border-amber-200 px-4 py-3 flex items-center justify-between">
               <div>
                 <span className="font-extrabold text-gray-900 text-sm">{task.actionId}</span>
-                <span className="ml-2 text-xs text-gray-500">→ Violation: {task.violationId}</span>
+                <span className="ml-2 text-xs text-gray-500">→ Violation:</span>
+                <Link
+                  to={`/violations/${task.violationId}`}
+                  className="ml-1 text-xs text-amber-600 font-bold hover:underline inline-flex items-center gap-0.5"
+                >
+                  {task.violationId} <ExternalLink className="w-3 h-3" />
+                </Link>
               </div>
               <div className="flex items-center space-x-2">
                 <CountdownBadge deadline={task.deadline} />
                 <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${task.status === 'ASSIGNED' ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800'}`}>{task.status}</span>
               </div>
             </div>
+
+            {/* Violation context */}
+            {violations[task.violationId] && (
+              <div className="px-4 pt-3 pb-0">
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-3.5 h-3.5 text-red-600 shrink-0" />
+                    <span className="text-xs font-extrabold text-red-700">{violations[task.violationId].title}</span>
+                    <span className={`ml-auto px-1.5 py-0.5 rounded text-[10px] font-bold text-white ${
+                      violations[task.violationId].severity === 'CRITICAL' ? 'bg-red-600' :
+                      violations[task.violationId].severity === 'MAJOR' ? 'bg-amber-500' : 'bg-emerald-500'
+                    }`}>{violations[task.violationId].severity}</span>
+                  </div>
+                  <p className="text-xs text-red-600 leading-relaxed">{violations[task.violationId].description}</p>
+                  <p className="text-[10px] text-red-400 font-semibold">{violations[task.violationId].regulation}</p>
+                </div>
+              </div>
+            )}
+
             <div className="p-4 space-y-3">
-              <p className="text-xs text-gray-700 font-medium">{task.description}</p>
+              <div className="bg-gray-50 rounded p-3">
+                <span className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Action Required</span>
+                <p className="text-xs text-gray-700 font-medium">{task.description}</p>
+              </div>
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div className="bg-gray-50 rounded p-2">
                   <span className="text-gray-400 font-bold uppercase text-[10px] block">Deadline</span>
@@ -143,7 +185,6 @@ const ContractorDashboard = () => {
                       {submitting === task.actionId ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
                       <span>{submitting === task.actionId ? 'Submitting...' : 'Submit Evidence'}</span>
                     </button>
-                    <span className="text-[10px] text-gray-400">Photo upload available in full version</span>
                   </div>
                 </div>
               )}

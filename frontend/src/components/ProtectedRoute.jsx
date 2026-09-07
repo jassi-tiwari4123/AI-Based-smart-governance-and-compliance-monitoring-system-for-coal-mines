@@ -17,7 +17,7 @@ const ROUTE_PERMISSIONS = {
   '/inspections/:id':      ['INSPECTOR', 'MINE_MANAGER', 'CORPORATE_ADMIN', 'SUPER_ADMIN'],
 
   '/violations':           ['INSPECTOR', 'MINE_MANAGER', 'CORPORATE_ADMIN', 'SUPER_ADMIN'],
-  '/violations/:id':       ['INSPECTOR', 'MINE_MANAGER', 'CORPORATE_ADMIN', 'SUPER_ADMIN'],
+  '/violations/:id':       ['INSPECTOR', 'MINE_MANAGER', 'CORPORATE_ADMIN', 'CONTRACTOR', 'SUPER_ADMIN'],
 
   '/ai-insights':          ['MINE_MANAGER', 'CORPORATE_ADMIN', 'SUPER_ADMIN'],
   '/ai-investigation/:id': ['INSPECTOR', 'MINE_MANAGER', 'CORPORATE_ADMIN', 'SUPER_ADMIN'],
