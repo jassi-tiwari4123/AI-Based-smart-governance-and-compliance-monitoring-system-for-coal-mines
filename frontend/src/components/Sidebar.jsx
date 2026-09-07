@@ -100,8 +100,7 @@ const NAV_CONFIG = {
     {
       title: 'My Portal',
       items: [
-        { label: 'My Tasks',           path: '/dashboard/contractor', icon: UserCheck },
-        { label: 'Corrective Actions', path: '/corrective-actions',   icon: FileCheck },
+        { label: 'My Tasks', path: '/dashboard/contractor', icon: UserCheck },
       ]
     },
     {
