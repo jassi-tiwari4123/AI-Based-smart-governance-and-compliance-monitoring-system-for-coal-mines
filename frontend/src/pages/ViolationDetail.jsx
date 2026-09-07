@@ -36,12 +36,14 @@ const ViolationDetail = () => {
   // Corrective Action form
   const [showCAForm, setShowCAForm] = useState(false);
   const [caForm, setCAForm] = useState({
-    assignedTo: 'Vikram Heavy Infra (Contractor)',
+    assignedTo: '',
+    assignedUserId: '',
     description: '',
     deadline: '',
   });
   const [caSubmitting, setCASubmitting] = useState(false);
   const [caSuccess, setCASuccess] = useState(false);
+  const [mineContractors, setMineContractors] = useState([]);
 
   const canCreateCA = ['MINE_MANAGER', 'CORPORATE_ADMIN', 'SUPER_ADMIN'].includes(user?.role);
 
@@ -69,6 +71,7 @@ const ViolationDetail = () => {
         violationId: id,
         mineId: violation.mineId,
         assignedTo: caForm.assignedTo,
+        assignedUserId: caForm.assignedUserId,
         description: caForm.description,
         deadline: new Date(caForm.deadline).toISOString(),
       });
@@ -103,6 +106,7 @@ const ViolationDetail = () => {
     violation.riskLevel === 'MEDIUM' ? 'bg-amber-500' : 'bg-emerald-600';
 
   const ai = violation.aiAnalysis || violation.investigationSummary?.reason;
+  const riskFactors = ai?.riskFactors || ai?.risk_factors || [];
 
   return (
     <div className="p-6 space-y-6 max-w-4xl mx-auto">
@@ -216,10 +220,10 @@ const ViolationDetail = () => {
             {ai ? (
               <div className="space-y-2 text-xs">
                 {ai.finding && <p className="text-gray-200 font-semibold">{ai.finding}</p>}
-                {ai.riskFactors && (
+                {riskFactors.length > 0 && (
                   <div>
                     <p className="text-gray-400 font-bold uppercase text-[10px] mb-1">Risk Factors</p>
-                    {(ai.riskFactors || []).map((f, i) => (
+                    {riskFactors.map((f, i) => (
                       <div key={i} className="flex items-start space-x-1.5 py-0.5">
                         <AlertTriangle className="w-3 h-3 text-amber-400 shrink-0 mt-0.5" />
                         <span className="text-gray-300">{f}</span>
@@ -301,7 +305,21 @@ const ViolationDetail = () => {
 
               {!showCAForm ? (
                 <button
-                  onClick={() => setShowCAForm(true)}
+                  onClick={async () => {
+                    setShowCAForm(true);
+                    if (mineContractors.length === 0) {
+                      try {
+                        const res = await API.get('/users/mine');
+                        const contractors = res.data.filter(u => u.role === 'CONTRACTOR');
+                        setMineContractors(contractors);
+                        if (contractors.length > 0) {
+                          setCAForm(f => ({ ...f, assignedTo: contractors[0].name, assignedUserId: contractors[0].userId }));
+                        }
+                      } catch (e) {
+                        console.error(e);
+                      }
+                    }
+                  }}
                   className="w-full bg-[#F47C20] hover:bg-orange-600 text-slate-950 font-extrabold text-xs py-2.5 rounded transition flex items-center justify-center gap-2"
                 >
                   <Plus className="w-3.5 h-3.5" />
@@ -312,15 +330,20 @@ const ViolationDetail = () => {
                   <div>
                     <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Assign To</label>
                     <select
-                      value={caForm.assignedTo}
-                      onChange={e => setCAForm(f => ({ ...f, assignedTo: e.target.value }))}
+                      value={caForm.assignedUserId}
+                      onChange={e => {
+                        const selected = mineContractors.find(c => c.userId === e.target.value);
+                        setCAForm(f => ({ ...f, assignedTo: selected?.name || '', assignedUserId: e.target.value }));
+                      }}
                       className="w-full text-xs border border-gray-300 rounded px-2.5 py-2 focus:ring-2 focus:ring-amber-400"
                     >
-                      <option>Vikram Heavy Infra (Contractor)</option>
-                      <option>Mine Safety Officer</option>
-                      <option>Zone B Supervisor</option>
-                      <option>Environmental Officer</option>
-                      <option>Labour Welfare Officer</option>
+                      {mineContractors.length > 0 ? (
+                        mineContractors.map(c => (
+                          <option key={c.userId} value={c.userId}>{c.name}</option>
+                        ))
+                      ) : (
+                        <option value="">No contractors assigned to this mine</option>
+                      )}
                     </select>
                   </div>
                   <div>

@@ -161,7 +161,12 @@ const CorrectiveActionsPage = () => {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchActions(); }, []);
+  useEffect(() => { 
+    fetchActions(); 
+    // Poll every 30 seconds so mine manager sees contractor submissions in near real-time
+    const interval = setInterval(fetchActions, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const filtered = filterStatus ? actions.filter(a => a.status === filterStatus) : actions;
 

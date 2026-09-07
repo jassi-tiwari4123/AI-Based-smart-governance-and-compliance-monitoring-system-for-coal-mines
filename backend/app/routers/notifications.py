@@ -13,9 +13,11 @@ async def get_notifications(current_user: dict = Depends(get_current_user)):
 
     query = {
         "$or": [
-            {"role": role},
-            {"role": "ALL"},
-            {"userId": user_id}
+            # Targeted notification — only for this specific user
+            {"userId": user_id},
+            # Broadcast notifications — role-based but not targeted to a specific user
+            {"role": role,   "userId": {"$exists": False}},
+            {"role": "ALL",  "userId": {"$exists": False}},
         ]
     }
 

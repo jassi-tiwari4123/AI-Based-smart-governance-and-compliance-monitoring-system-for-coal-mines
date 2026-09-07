@@ -121,6 +121,7 @@ class CorrectiveActionCreate(BaseModel):
     violationId: str
     mineId: str
     assignedTo: str
+    assignedUserId: Optional[str] = None
     description: str
     deadline: str
 

@@ -13,8 +13,11 @@ async def create_corrective_action(
     current_user: dict = Depends(require_roles(["MINE_MANAGER", "SUPER_ADMIN", "CORPORATE_ADMIN", "INSPECTOR"]))
 ):
     db = get_database()
-    count = await db.corrective_actions.count_documents({})
-    action_id = f"ACT-{datetime.utcnow().year}-{count+1:04d}"
+    import random, string as _string
+    from datetime import timezone
+    suffix = ''.join(random.choices(_string.digits, k=4))
+    ts = datetime.now(timezone.utc).strftime("%m%d%H%M")
+    action_id = f"ACT-{datetime.utcnow().year}-{ts}{suffix}"
     
     doc = action_data.dict()
     doc["actionId"] = action_id
@@ -64,10 +67,13 @@ async def list_corrective_actions(
     query = {}
     
     if current_user.get("role") == "CONTRACTOR":
+        contractor_name = current_user.get("name", "")
+        contractor_uid  = current_user.get("userId", "")
+        contractor_email = current_user.get("email", "")
         query["$or"] = [
-            {"assignedTo": current_user.get("name")},
-            {"assignedTo": current_user.get("email")},
-            {"mineId": current_user.get("mineId")},
+            {"assignedUserId": contractor_uid},
+            {"assignedTo": contractor_name},
+            {"assignedTo": contractor_email},
         ]
     elif mineId:
         query["mineId"] = mineId
@@ -129,11 +135,16 @@ async def submit_evidence(
         record_id=act["actionId"]
     )
 
-    # Notify Manager
+    # Notify the specific Mine Manager for this mine
+    mine_doc = await db.mines.find_one({"mineId": act["mineId"]})
+    manager_id = mine_doc.get("managerId") if mine_doc else None
+
     await db.notifications.insert_one({
         "role": "MINE_MANAGER",
+        "userId": manager_id,
+        "mineId": act["mineId"],
         "title": f"Verification Required: {act['actionId']}",
-        "message": f"Evidence submitted by {current_user.get('name')}. Ready for compliance verification.",
+        "message": f"Evidence submitted by {current_user.get('name')} for {act['actionId']}. Ready for compliance verification.",
         "type": "VERIFICATION_REQUIRED",
         "isRead": False,
         "link": f"/corrective-actions/{act['actionId']}",

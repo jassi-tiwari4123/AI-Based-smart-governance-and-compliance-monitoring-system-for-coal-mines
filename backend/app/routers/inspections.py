@@ -15,8 +15,12 @@ async def create_inspection(
     current_user: dict = Depends(require_roles(["INSPECTOR", "MINE_MANAGER", "SUPER_ADMIN", "CORPORATE_ADMIN"]))
 ):
     db = get_database()
-    count = await db.inspections.count_documents({})
-    inspection_id = f"INS-{datetime.utcnow().year}-{count+1:04d}"
+    # Use timestamp + random suffix to avoid ID collisions when records are deleted
+    from datetime import timezone
+    import random, string
+    suffix = ''.join(random.choices(string.digits, k=4))
+    ts = datetime.now(timezone.utc).strftime("%m%d%H%M")
+    inspection_id = f"INS-{datetime.utcnow().year}-{ts}{suffix}"
     
     doc = inspection_data.dict()
     doc["inspectionId"] = inspection_id
@@ -45,8 +49,9 @@ async def create_inspection(
     obs = doc.get("observations", "")
     # Always create a violation for every inspection submission
     if True:
-        vio_count = await db.violations.count_documents({})
-        violation_id = f"VIO-{datetime.utcnow().year}-{vio_count+1:04d}"
+        vio_suffix = ''.join(random.choices(string.digits, k=4))
+        vio_ts = datetime.now(timezone.utc).strftime("%m%d%H%M")
+        violation_id = f"VIO-{datetime.utcnow().year}-{vio_ts}{vio_suffix}"
         
         violation_doc = {
             "violationId": violation_id,
