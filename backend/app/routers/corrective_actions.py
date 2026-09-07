@@ -67,7 +67,7 @@ async def list_corrective_actions(
         query["$or"] = [
             {"assignedTo": current_user.get("name")},
             {"assignedTo": current_user.get("email")},
-            {"assignedTo": "Contractor Safety Team"}
+            {"mineId": current_user.get("mineId")},
         ]
     elif mineId:
         query["mineId"] = mineId

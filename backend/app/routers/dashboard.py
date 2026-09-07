@@ -128,19 +128,22 @@ async def get_regulator_dashboard(current_user: dict = Depends(get_current_user)
 @router.get("/contractor")
 async def get_contractor_dashboard(current_user: dict = Depends(get_current_user)):
     db = get_database()
-    assigned_actions = await db.corrective_actions.find({
+
+    # Match by contractor name, email, or their assigned mineId
+    query = {
         "$or": [
             {"assignedTo": current_user.get("name")},
             {"assignedTo": current_user.get("email")},
-            {"assignedTo": "Contractor Safety Team"},
-            {"assignedTo": "Vikram Heavy Infra (Contractor)"},
+            {"mineId": current_user.get("mineId")},
         ]
-    }).to_list(length=100)
+    }
+
+    assigned_actions = await db.corrective_actions.find(query).to_list(length=100)
 
     return clean({
-        "assignedTasksCount":        len(assigned_actions),
-        "pendingEvidenceCount":      len([a for a in assigned_actions if a.get("status") in ["ASSIGNED", "IN_PROGRESS"]]),
+        "assignedTasksCount":         len(assigned_actions),
+        "pendingEvidenceCount":       len([a for a in assigned_actions if a.get("status") in ["ASSIGNED", "IN_PROGRESS"]]),
         "submittedVerificationCount": len([a for a in assigned_actions if a.get("status") == "SUBMITTED"]),
-        "completedTasksCount":       len([a for a in assigned_actions if a.get("status") in ["VERIFIED", "CLOSED"]]),
-        "tasks":                     assigned_actions,
+        "completedTasksCount":        len([a for a in assigned_actions if a.get("status") in ["VERIFIED", "CLOSED"]]),
+        "tasks":                      assigned_actions,
     })
