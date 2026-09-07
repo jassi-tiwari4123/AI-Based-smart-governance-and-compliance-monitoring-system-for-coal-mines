@@ -118,13 +118,15 @@ const ViolationDetail = () => {
           </div>
         </div>
         <div className="flex items-center space-x-2">
-          <Link
-            to={`/ai-investigation/${id}`}
-            className="flex items-center space-x-1.5 bg-[#252525] hover:bg-gray-700 text-white text-xs font-bold px-3 py-2 rounded shadow transition"
-          >
-            <Cpu className="w-4 h-4 text-[#F47C20]" />
-            <span>AI Investigation</span>
-          </Link>
+          {user?.role !== 'CONTRACTOR' && (
+            <Link
+              to={`/ai-investigation/${id}`}
+              className="flex items-center space-x-1.5 bg-[#252525] hover:bg-gray-700 text-white text-xs font-bold px-3 py-2 rounded shadow transition"
+            >
+              <Cpu className="w-4 h-4 text-[#F47C20]" />
+              <span>AI Investigation</span>
+            </Link>
+          )}
         </div>
       </div>
 
@@ -245,7 +247,8 @@ const ViolationDetail = () => {
             )}
           </div>
 
-          {/* Status Actions */}
+          {/* Status Actions — Mine Manager and Corporate Admin only */}
+          {['MINE_MANAGER', 'CORPORATE_ADMIN', 'SUPER_ADMIN'].includes(user?.role) && (
           <div className="bg-white border border-gray-300 rounded-lg shadow-sm p-4">
             <h3 className="text-xs font-extrabold text-gray-700 uppercase tracking-wider mb-3">Update Status</h3>
             <div className="grid grid-cols-2 gap-2">
@@ -265,6 +268,7 @@ const ViolationDetail = () => {
               ))}
             </div>
           </div>
+          )}
 
           {/* Evidence Photos */}
           {violation.evidence && violation.evidence.length > 0 && (
