@@ -43,7 +43,8 @@ async def create_inspection(
     violation_id = None
     created_violation = None
     obs = doc.get("observations", "")
-    if doc.get("severity") in ["MAJOR", "CRITICAL"] or "compliance" in obs.lower() or "issue" in obs.lower() or "violation" in obs.lower():
+    # Always create a violation for every inspection submission
+    if True:
         vio_count = await db.violations.count_documents({})
         violation_id = f"VIO-{datetime.utcnow().year}-{vio_count+1:04d}"
         

@@ -264,25 +264,9 @@ const MineDetail = ({ mineId, onBack, isManager }) => {
                   <td className="px-4 py-2.5"><StatusBadge status={v.status} /></td>
                   <td className="px-4 py-2.5 font-extrabold text-gray-800">{v.riskScore}/100</td>
                   <td className="px-4 py-2.5">
-                    {v._source === 'INSPECTION' ? (
-                      <Link to={`/inspections/${v.inspectionId}`} className="text-blue-600 font-bold hover:underline flex items-center gap-0.5">
-                        <ClipboardCheck className="w-3 h-3" />View
-                      </Link>
-                    ) : v._source === 'INSPECTION_VIOLATION' ? (
-                      <div className="flex items-center space-x-2">
-                        <Link to={`/inspections/${v.inspectionId}`} className="text-blue-600 font-bold hover:underline text-[11px]">
-                          Inspect
-                        </Link>
-                        <span className="text-gray-300">|</span>
-                        <Link to={`/ai-investigation/${v.violationId}`} className="text-[#F47C20] font-bold hover:underline flex items-center gap-0.5 text-[11px]">
-                          <Cpu className="w-3 h-3" />AI
-                        </Link>
-                      </div>
-                    ) : (
-                      <Link to={`/ai-investigation/${v.violationId}`} className="text-[#F47C20] font-bold hover:underline flex items-center gap-0.5">
-                        <Cpu className="w-3 h-3" />AI
-                      </Link>
-                    )}
+                    <Link to={`/ai-investigation/${v.violationId}`} className="text-[#F47C20] font-bold hover:underline flex items-center gap-0.5">
+                      <Cpu className="w-3 h-3" />AI
+                    </Link>
                   </td>
                 </tr>
               ))}

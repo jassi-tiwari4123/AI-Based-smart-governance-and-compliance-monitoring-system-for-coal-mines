@@ -99,52 +99,16 @@ async def get_mine_dashboard(mine_id: str, current_user: dict = Depends(get_curr
     violations   = await db.violations.find({"mineId": m_id}).sort("createdAt", -1).to_list(length=200)
     actions      = await db.corrective_actions.find({"mineId": m_id}).to_list(length=200)
 
-    # Build a unified compliance log: real violations + inspections that didn't auto-generate one
-    violation_inspection_ids = {v.get("inspectionId") for v in violations if v.get("inspectionId")}
-
-    # Tag real violations that came from an inspection
-    for v in violations:
-        if v.get("inspectionId"):
-            v["_source"] = "INSPECTION_VIOLATION"
-        else:
-            v["_source"] = "VIOLATION"
-
-    inspection_as_violations = []
-    for ins in inspections:
-        if ins.get("inspectionId") not in violation_inspection_ids:
-            inspection_as_violations.append({
-                "violationId":   ins.get("inspectionId"),
-                "inspectionId":  ins.get("inspectionId"),
-                "title":         f"[Inspection] {ins.get('category','')} — {ins.get('zone','')}",
-                "category":      ins.get("category"),
-                "severity":      ins.get("severity"),
-                "status":        ins.get("status"),
-                "riskScore":     0,
-                "riskLevel":     "LOW",
-                "mineId":        m_id,
-                "detectedDate":  ins.get("inspectionDate") or ins.get("createdAt"),
-                "_source":       "INSPECTION",
-            })
-
-    all_compliance = sorted(
-        violations + inspection_as_violations,
-        key=lambda x: x.get("detectedDate") or x.get("createdAt") or "",
-        reverse=True
-    )
-
-    open_count = len([
-        x for x in all_compliance
-        if x.get("status") not in ("CLOSED", "RESOLVED", "REVIEWED")
-    ])
+    open_violations = [v for v in violations if v.get("status") not in ("CLOSED", "RESOLVED")]
 
     return clean({
         "mine":                   mine,
         "inspectionsCount":       len(inspections),
-        "violationsCount":        len(all_compliance),
-        "openViolationsCount":    open_count,
+        "violationsCount":        len(violations),
+        "openViolationsCount":    len(open_violations),
         "correctiveActionsCount": len(actions),
         "recentInspections":      inspections[:5],
-        "recentViolations":       all_compliance[:10],
+        "recentViolations":       violations[:10],
     })
 
 
