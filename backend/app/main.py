@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 from app.config import settings
 from app.database.connection import connect_to_mongo, close_mongo_connection
+from seed import run_seed_if_empty
 from app.routers import (
     auth, mines, inspections, violations, incidents,
     corrective_actions, ai_router, gis, dashboard,
@@ -76,6 +77,7 @@ async def objectid_sanitiser(request, call_next):
 @app.on_event("startup")
 async def startup_event():
     await connect_to_mongo()
+    await run_seed_if_empty()
 
 
 @app.on_event("shutdown")
