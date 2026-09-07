@@ -101,6 +101,14 @@ async def get_mine_dashboard(mine_id: str, current_user: dict = Depends(get_curr
 
     # Build a unified compliance log: real violations + inspections that didn't auto-generate one
     violation_inspection_ids = {v.get("inspectionId") for v in violations if v.get("inspectionId")}
+
+    # Tag real violations that came from an inspection
+    for v in violations:
+        if v.get("inspectionId"):
+            v["_source"] = "INSPECTION_VIOLATION"
+        else:
+            v["_source"] = "VIOLATION"
+
     inspection_as_violations = []
     for ins in inspections:
         if ins.get("inspectionId") not in violation_inspection_ids:

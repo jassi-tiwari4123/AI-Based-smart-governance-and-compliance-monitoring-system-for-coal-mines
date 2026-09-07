@@ -95,9 +95,9 @@ class RiskEngineService:
             "analyzedAt": datetime.utcnow().isoformat()
         }
 
-        # Update violation record in DB
+        # Update violation record in DB — match by both violationId + mineId to avoid seeded-data collisions
         await db.violations.update_one(
-            {"violationId": violation.get("violationId")},
+            {"violationId": violation.get("violationId"), "mineId": violation.get("mineId")},
             {"$set": {
                 "riskScore": final_score,
                 "riskLevel": level,

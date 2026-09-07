@@ -76,6 +76,16 @@ async def create_inspection(
         violation_doc["riskScore"] = risk_result["riskScore"]
         violation_doc["riskLevel"] = risk_result["riskLevel"]
 
+        # Explicitly persist risk score to DB (belt-and-suspenders)
+        await db.violations.update_one(
+            {"violationId": violation_id},
+            {"$set": {
+                "riskScore": risk_result["riskScore"],
+                "riskLevel": risk_result["riskLevel"],
+                "updatedAt": datetime.utcnow().isoformat()
+            }}
+        )
+
         # set created_violation AFTER risk scores are populated
         created_violation = violation_doc
 
