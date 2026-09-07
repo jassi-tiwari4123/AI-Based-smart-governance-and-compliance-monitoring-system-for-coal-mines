@@ -56,15 +56,16 @@ const ContractorDashboard = () => {
         notes,
       });
       setSubmitted(s => ({ ...s, [actionId]: true }));
-      await fetchData();
-    } catch (e) { console.error(e); }
+      setEvidenceNotes(n => ({ ...n, [actionId]: '' }));
+      await fetchData(); // re-fetch so the card moves from Pending to Awaiting Verification
+    } catch (e) { console.error(e); alert('Submission failed. Please try again.'); }
     finally { setSubmitting(null); }
   };
 
   if (loading) return <div className="p-8 text-center text-xs font-bold text-gray-500 animate-pulse">Loading Contractor Portal...</div>;
 
   const tasks = data?.tasks || [];
-  const pending = tasks.filter(t => ['ASSIGNED', 'IN_PROGRESS'].includes(t.status));
+  const pending         = tasks.filter(t => t.status === 'ASSIGNED');
   const submitted_tasks = tasks.filter(t => t.status === 'SUBMITTED');
   const verified = tasks.filter(t => ['VERIFIED', 'CLOSED'].includes(t.status));
 
