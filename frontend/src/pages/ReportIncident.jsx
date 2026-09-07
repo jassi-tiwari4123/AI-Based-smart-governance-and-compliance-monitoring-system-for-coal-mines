@@ -1,23 +1,11 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import {
   Flame, MapPin, Camera, Upload, CheckCircle2,
   Loader2, ChevronRight, ArrowLeft, AlertTriangle
 } from 'lucide-react';
-
-const MINES = [
-  { id: 'MINE-007', name: 'Mine 07 (Talcher Coalfield)' },
-  { id: 'MINE-001', name: 'Dhanbad Opencast Pit #4' },
-  { id: 'MINE-002', name: 'Gevra Mega Open Cast Mine' },
-  { id: 'MINE-003', name: 'Raniganj Underground Sector B' },
-  { id: 'MINE-004', name: 'Ib Valley Open Cast Pit #2' },
-  { id: 'MINE-005', name: 'Rajrappa Open Pit & Washery' },
-  { id: 'MINE-006', name: 'Dipka Open Cast Mine' },
-  { id: 'MINE-008', name: 'Jayant Open Cast Project' },
-  { id: 'MINE-009', name: 'Dulanga Open Cast Block' },
-  { id: 'MINE-010', name: 'Tamnar Captive Coal Pit' },
-];
 
 const ZONES = ['Zone A', 'Zone B', 'Zone C', 'Pit #1', 'Pit #2', 'Pit #3', 'Haulage Corridor', 'Washery Area', 'Stockpile #1', 'Stockpile #2', 'Office Block'];
 
@@ -32,13 +20,24 @@ const CATEGORIES = [
 
 const ReportIncident = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const fileInputRef = useRef(null);
+  const [mines, setMines] = useState([]);
+
+  useEffect(() => {
+    API.get('/mines').then(r => {
+      const list = r.data || [];
+      setMines(list);
+      const defaultMine = list.find(m => m.mineId === user?.mineId) || list[0];
+      if (defaultMine) setForm(f => ({ ...f, mineId: defaultMine.mineId }));
+    }).catch(console.error);
+  }, []);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(null);
   const [gpsLoading, setGpsLoading] = useState(false);
 
   const [form, setForm] = useState({
-    mineId: 'MINE-007',
+    mineId: user?.mineId || '',
     zone: 'Zone A',
     category: 'SAFETY',
     severity: 'MAJOR',
@@ -162,7 +161,7 @@ const ReportIncident = () => {
               onChange={e => setForm(f => ({ ...f, mineId: e.target.value }))}
               className="w-full text-xs border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-amber-400 focus:border-amber-400"
             >
-              {MINES.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+              {mines.map(m => <option key={m.mineId} value={m.mineId}>{m.name}</option>)}
             </select>
           </div>
           <div>
