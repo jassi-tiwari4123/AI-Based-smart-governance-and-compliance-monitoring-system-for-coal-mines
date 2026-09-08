@@ -141,6 +141,23 @@ class AIInvestigationRequest(BaseModel):
     violationId: str
     additionalContext: Optional[str] = None
 
+class InspectionSuggestionRequest(BaseModel):
+    observation: str  # free-text field observation from the inspector
+
+class ChecklistSuggestion(BaseModel):
+    item: str
+    suggestedStatus: str  # PASS | FAIL
+    reason: str           # brief rationale
+
+class InspectionSuggestionResponse(BaseModel):
+    severity: str                              # MINOR | MAJOR | CRITICAL
+    severityReason: str
+    category: str                              # SAFETY | ENVIRONMENT | PRODUCTION | LABOUR
+    categoryReason: str
+    checklist: List[ChecklistSuggestion]
+    summary: str                               # one-line AI summary of the observation
+    confidence: str
+
 # Document Schema
 class DocumentCreate(BaseModel):
     mineId: str

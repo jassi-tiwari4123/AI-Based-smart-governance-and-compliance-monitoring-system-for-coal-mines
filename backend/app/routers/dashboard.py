@@ -131,13 +131,10 @@ async def get_regulator_dashboard(current_user: dict = Depends(get_current_user)
 async def get_contractor_dashboard(current_user: dict = Depends(get_current_user)):
     db = get_database()
 
-    # Match by contractor name, email, or their assigned mineId
+    # Strict match by assignedUserId + mineId — no name/email fallback
     query = {
-        "$or": [
-            {"assignedTo": current_user.get("name")},
-            {"assignedTo": current_user.get("email")},
-            {"mineId": current_user.get("mineId")},
-        ]
+        "assignedUserId": current_user.get("userId"),
+        "mineId": current_user.get("mineId"),
     }
 
     assigned_actions = await db.corrective_actions.find(query).to_list(length=100)

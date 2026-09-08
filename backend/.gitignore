@@ -34,3 +34,6 @@ __pycache__/
 *.pyd
 *.egg-info/
 .pytest_cache/
+
+# Atlas export (contains DB data — do not commit)
+atlas_export/
