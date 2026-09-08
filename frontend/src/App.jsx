@@ -11,6 +11,7 @@ import CorporateDashboard from './pages/CorporateDashboard';
 import MineDashboard from './pages/MineDashboard';
 import InspectorDashboard from './pages/InspectorDashboard';
 import ContractorDashboard from './pages/ContractorDashboard';
+import RegulatorDashboard from './pages/RegulatorDashboard';
 import MinesList from './pages/MinesList';
 import MineDetail from './pages/MineDetail';
 import InspectionsList from './pages/InspectionsList';
@@ -44,6 +45,7 @@ const ROLE_HOME = {
   MINE_MANAGER:    '/dashboard/mine',
   CORPORATE_ADMIN: '/dashboard',
   CONTRACTOR:      '/dashboard/contractor',
+  REGULATOR:       '/dashboard/regulator',
   SUPER_ADMIN:     '/dashboard',
 };
 
@@ -89,6 +91,7 @@ function AppRoutes() {
       <Route path="/dashboard/inspector"    element={<Page component={InspectorDashboard}  path="/dashboard/inspector" />} />
       <Route path="/dashboard/mine"         element={<Page component={MineDashboard}        path="/dashboard/mine" />} />
       <Route path="/dashboard/contractor"   element={<Page component={ContractorDashboard}  path="/dashboard/contractor" />} />
+      <Route path="/dashboard/regulator"    element={<Page component={RegulatorDashboard}   path="/dashboard/regulator" />} />
 
       {/* Mines */}
       <Route path="/mines"     element={<Page component={MinesList}  path="/mines" />} />

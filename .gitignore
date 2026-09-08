@@ -1,28 +1,35 @@
-# Dependencies
-node_modules/
-
-# Environment variables
+# ── Environment variables (NEVER commit these) ───────────────
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
 
-# Build
+# ── Node / Frontend ───────────────────────────────────────────
+node_modules/
 dist/
 build/
-
-# Logs
 npm-debug.log*
 yarn-debug.log*
 pnpm-debug.log*
 
-# OS files
+# ── Python / Backend ──────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.pytest_cache/
+venv/
+.venv/
+env/
+
+# ── Uploads (local files, not for Git) ───────────────────────
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# ── OS & Editor ───────────────────────────────────────────────
 .DS_Store
 Thumbs.db
-
-# VS Code
 .vscode/
-
-# Vite
-vite.config.js.timestamp-*
+.idea/
